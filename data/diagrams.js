@@ -1548,6 +1548,60 @@ window.DIAGRAMS = {
     ],
   },
 
+
+  ml4: {
+    s: "C",
+    caption: "One Mistral Large 4 layer, repeated 72 times. Every layer is MLA with DeepSeek Sparse Attention and no query LoRA. Every fourth layer drops RoPE, 28 layers reuse the previous indexer's picks, and 9 late NoPE layers read layer 35's KV cache instead of their own.",
+    inputs: [{ row: [
+      { l: "Token embedding", s: "204,800 × 6144" },
+      { l: "Pixtral ViT ≈ 1.6B", s: "30 layers, 1540 px, 2 × 2 merge" },
+    ] }],
+    block: {
+      title: "Decoder layer",
+      repeat: "× 72",
+      stream: "residual stream",
+      note: "Layer 0: dense SwiGLU FFN (24,576) instead of MoE",
+      branches: [
+        {
+          title: "MLA + DeepSeek Sparse Attention",
+          steps: [
+            { l: "RMSNorm" },
+            { row: [
+              { l: "Q: 6144 → 64 × 128", s: "full rank, no Q-LoRA", n: true },
+              { l: "KV latent 512 + RoPE 64", s: "cached; L39…71 read L35's", n: true },
+            ] },
+            { l: "LeRoPE: YaRN × learned α", s: "interleaved, 64 dims; NoPE every 4th", n: true },
+            { l: "Log-position query scale", s: "q · (s·log(pos+1) + b) per head", n: true },
+            { l: "Indexer: top-2,048 tokens", s: "44 layers compute, 28 reuse", n: true },
+            { l: "Sparse attention", s: "64 heads × 128 over selected", n: true },
+            { l: "Output projection", s: "64 × 128 → 6144" },
+          ],
+          merge: { l: "+ residual" },
+        },
+        {
+          title: "MoE (layers 1–71)",
+          steps: [
+            { l: "RMSNorm" },
+            { l: "Softmax router (FP32)", s: "top-4 of 128, renormalized" },
+            { row: [
+              { l: "4 SwiGLU experts", s: "6144 → 6144 → 6144" },
+              { l: "1 shared expert", s: "SwiGLU 6144" },
+            ] },
+            { l: "Weighted sum", s: "× 1.0" },
+          ],
+          merge: { l: "+ residual" },
+        },
+      ],
+    },
+    outputs: [
+      { l: "Final RMSNorm" },
+      { row: [
+        { l: "LM head, softcap 30", s: "30 · tanh(z / 30), untied", n: true },
+        { l: "DSpark drafter", s: "3 layers, 3-token blocks", n: true },
+      ] },
+    ],
+  },
+
 };
 
 /*
@@ -1585,6 +1639,35 @@ window.STACKS = {
       bridge: "H19 feeds L20: residual input + source of decoder main KV",
       output: ["Final RMSNorm → LM head", "DSpark drafter (reads L37–39)"],
       caption: "All 40 layers of DeepSeek-V4.1-Flash, bottom to top. Every layer computes its own query and 128-token SWA KV. Only 4 layers create the shared FP4 main KV, and 8 create top-512 indices; every other layer borrows them. The 20 decoder layers share one main KV, projected from the encoder's output, which is why prefill can stop after the encoder.",
+    };
+  })(),
+  ml4: (function () {
+    // From params.json / config.json: dsa.sharing (indexer_types), kv_sharing (kv_source_layers), nope pattern.
+    const sharing = "full,full,full,full,full,full,full,full,full,full,full,full,full,full,full,full,full,shared,shared,full,full,shared,shared,full,full,shared,shared,full,full,shared,shared,full,full,shared,shared,full,full,shared,shared,full,full,shared,shared,full,full,shared,shared,full,full,shared,shared,full,full,shared,shared,full,full,shared,shared,full,full,shared,shared,full,full,shared,shared,full,full,shared,shared,full".split(",");
+    const kvSource = "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,35,40,41,42,35,44,45,46,35,48,49,50,35,52,53,54,35,56,57,58,35,60,61,62,35,64,65,66,35,68,69,70,35".split(",").map(Number);
+    const nope = (i) => (i + 1) % 4 === 0; // no_rope_layer_interval = 4
+    const lastFull = (i) => { let j = i; while (sharing[j] !== "full") j--; return j; };
+    const isSource = (i) => kvSource.some((src, j) => j !== i && src === i);
+    const layers = Array.from({ length: 72 }, (_, i) => {
+      const pos = nope(i) ? "NoPE" : "RoPE";
+      if (kvSource[i] !== i) return { i, mode: "reindex", t: `${pos} · KV of L${kvSource[i]} · own top-2048` };
+      if (sharing[i] === "shared") return { i, mode: "reuse", t: `${pos} · own KV · top-k of L${lastFull(i)}` };
+      if (isSource(i)) return { i, mode: nope(i) ? "nope" : "full", t: `${pos} · own KV, read by 9 more · own top-k` };
+      return { i, mode: nope(i) ? "nope" : "full", t: `${pos} · own KV · own top-2048${i === 0 ? " · dense FFN" : ""}` };
+    });
+    return {
+      s: "C",
+      columns: [
+        { title: "Layers 0–35", note: ["Every layer caches its own MLA latent", "L0 dense FFN; L1–71 MoE, 128 → 4 + 1 shared"], from: 0, to: 35 },
+        { title: "Layers 36–71", note: ["NoPE layers 39, 43, …, 71 read L35's cache", "Two of every four layers reuse the indexer"], from: 36, to: 71 },
+      ],
+      layers,
+      kvRails: false,
+      legend: [["full", "RoPE: own KV, own indexer"], ["nope", "NoPE: own KV, own indexer"], ["reuse", "Own KV, reuses previous top-k"], ["reindex", "NoPE: KV of L35, own indexer"]],
+      input: "Text + Pixtral image tokens",
+      bridge: "L35 → L36",
+      output: ["LM head, softcap 30", "DSpark drafter, 3 layers"],
+      caption: "All 72 layers of Mistral Large 4, bottom to top. Each layer's role comes from three config fields: the NoPE pattern, indexer_types and kv_source_layers. Only 63 layers store KV; the 9 late NoPE layers attend over layer 35's latent but still pick their own top-2,048 tokens.",
     };
   })(),
 };

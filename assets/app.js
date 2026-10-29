@@ -168,7 +168,7 @@
       const col = S.columns.find((c) => src >= c.from && src <= c.to);
       return Math.min(next !== undefined ? next - 1 : col.to, col.to);
     };
-    S.kvSrc.forEach((src) => {
+    if (S.kvRails !== false) S.kvSrc.forEach((src) => {
       const a = geo[src], b = geo[kvEnd(src)];
       const x = a.x - 14;
       out.push(`<line x1="${x}" y1="${a.cy}" x2="${x}" y2="${b.y + 3}" class="st-rail"/>`);
@@ -218,9 +218,9 @@
     out.push(`<line x1="${dTop.x + colW - 14}" y1="${dTop.y}" x2="${dTop.x + colW - 14}" y2="${oy + 19}" class="st-flow" ${A}/>`);
     const H = bottom + 54;
     const vb = `0 ${oy - 14} ${W} ${H - (oy - 14)}`;
-    const legend = [["swa", "SWA only"], ["full", "Full: makes main KV and indices"], ["reindex", "Reindex: shared KV, own indices"], ["reuse", "Reuse: shared KV and indices"]]
+    const legend = (S.legend || [["swa", "SWA only"], ["full", "Full: makes main KV and indices"], ["reindex", "Reindex: shared KV, own indices"], ["reuse", "Reuse: shared KV and indices"]])
       .map(([k, l]) => `<span class="lg"><span class="st-swatch st-${k}"></span>${esc(l)}</span>`).join("") +
-      `<span class="lg"><span class="st-swatch st-engram"></span>Engram n-gram memory</span>`;
+      (S.engram ? `<span class="lg"><span class="st-swatch st-engram"></span>Engram n-gram memory</span>` : "");
     return `<figure class="dg">
       <div class="legend-row tight">${legend}</div>
       <div class="dg-scroll"><svg viewBox="${vb}" role="img" aria-label="${esc(S.caption)}" class="dg-svg st-svg">

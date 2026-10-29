@@ -4842,6 +4842,134 @@ window.MODELS = [
     },
   },
 
+  /* ------------------------------------------------------------------ */
+  {
+    id: "ml4",
+    glance: {"date": "2026-10-29", "attn": "MLA + DSA sparse, NoPE 1:4", "moe": "128 → 4 + 1 shared", "tokens": "—", "report": "Blog + card", "sig": "Nine late NoPE layers borrow layer 35's KV cache; learned RoPE frequencies"},
+    benchSource: { s: "B", t: "Mistral's open-weights post (2026-10-29), for the released checkpoint. Artificial Analysis ran the Coding Agent Index, Terminal-Bench 4.0 and Cyber Index scores; the Intelligence Index v5 figure is from the model card. DeepSWE, SWE-Atlas and AutomationBench come from the 2026-10-06 preview post and describe the preview checkpoint, before three more weeks of RL." },
+    name: "Mistral Large 4",
+    org: "Mistral AI",
+    released: "2026-10-29 (open weights, after three more weeks of RL); API public preview 2026-10-06",
+    license: "Mistral Ecosystem Open-Weight License (modified MIT; running a Model-as-a-Service business needs a separate commercial license, internal use does not)",
+    params: { total: "1.05T", active: "52B" },
+    contextShort: "1M",
+    modalitiesShort: "Text + image → text",
+    tagline:
+      "Mistral's largest model, nicknamed 'Le Chonk', trained from scratch on 3,800 Grace Blackwell GPUs in Mistral's own European datacenters. It is a 1.05T / 52B MoE built on DeepSeek's MLA and sparse attention, with Mistral's own long-context changes: every fourth layer has no positional encoding, nine late layers read layer 35's KV cache instead of keeping their own, and RoPE frequencies and query scales are learned. Mistral released the weights three weeks after the API preview, with more RL on top.",
+    disclosure: { arch: "detailed", pretrain: "minimal", sft: "minimal", rl: "partial" },
+    docs: [
+      { kind: "B", label: "Mistral Large 4 (Le Chonk) is now open weight (Mistral blog, 2026-10-29)", url: "https://mistral.ai/news/mistral-large-4-oss/" },
+      { kind: "B", label: "Introducing Mistral Large 4 (preview post, 2026-10-06)", url: "https://mistral.ai/news/mistral-large-4/" },
+      { kind: "B", label: "Mistral docs: Mistral Large 4 model page", url: "https://docs.mistral.ai/models/mistral-large-4-0" },
+      { kind: "C", label: "HF model card: Mistral-Large-4-1T-A52B", url: "https://huggingface.co/mistralai/Mistral-Large-4-1T-A52B" },
+      { kind: "C", label: "config.json", url: "https://huggingface.co/mistralai/Mistral-Large-4-1T-A52B/blob/main/config.json" },
+      { kind: "C", label: "params.json (Mistral's native config)", url: "https://huggingface.co/mistralai/Mistral-Large-4-1T-A52B/blob/main/params.json" },
+      { kind: "C", label: "transformers implementation (mistral_large4)", url: "https://github.com/huggingface/transformers/tree/main/src/transformers/models/mistral_large4" },
+      { kind: "C", label: "Mistral Ecosystem Open-Weight License", url: "https://huggingface.co/mistralai/Mistral-Large-4-1T-A52B/blob/main/LICENSE" },
+      { kind: "C", label: "HF model card: NVFP4 checkpoint", url: "https://huggingface.co/mistralai/Mistral-Large-4-1T-A52B-NVFP4" },
+    ],
+    layers: Array.from({ length: 72 }, (_, i) => ({ mixer: "sparse", ffn: i < 1 ? "dense" : "moe" })),
+    layersNote: "72 layers, all MLA with DSA sparse attention (layer_types: indexed_attention). mlp_layer_types: layer 0 dense, 1–71 MoE. no_rope_layers: every 4th layer (3, 7, …, 71) is NoPE. indexer_types: 44 'full', 28 'shared'. kv_source_layers: the 9 NoPE layers 39, 43, …, 71 point at layer 35. The DSpark draft model sits outside the stack.",
+    kv: { globalLayers: 72, swaLayers: 0, window: 0, kvHeads: 1, headDim: 576, stateBytes: 0, stateLabel: "", perTokenBytes: (54 * 576 + 9 * 512) * 2 + 44 * 128 * 2, fixedBytes: 0, perTokLabel: "MLA latent (63 cache-owning layers) + indexer K (44 layers), BF16", fixedLabel: "none", note: "Only 63 of 72 layers store a latent: 54 RoPE layers × 576 values and 9 NoPE layers × 512; the other 9 NoPE layers read layer 35's. Shown in BF16 like other MLA models here. params.json enables an FP8 KV cache and FP8 indexer, which halves it." },
+    specs: {
+      params: { v: "≈ 1.05T total / 52B active (49B without embeddings and LM head) + 1.6B vision encoder. Counted from config.json: 1,049B text, 52.3B active", s: "B+C+D" },
+      sparsity: { v: "5.0% (52B / 1.05T)", s: "D" },
+      layers: { v: "72; layer 0 dense FFN, 1–71 MoE (mlp_layer_types). A 3-layer DSpark draft model ships alongside", s: "C" },
+      hidden: { v: "6144", s: "C" },
+      vocab: { v: "204,800 (Tekken tokenizer)", s: "C" },
+      context: { v: "1M (1,048,576): YaRN factor 2048 over a 512-token RoPE base window, attention_factor 1.0", s: "B+C" },
+      mixer: { v: "MLA with DeepSeek Sparse Attention: a lightning indexer picks the top 2,048 tokens per query. No query LoRA (full-rank Q projection)", s: "C" },
+      heads: { v: "64 heads; KV latent 512 + 64 RoPE dims; QK 64 content + 64 RoPE = 128 (NoPE layers: 128 content), V 128", s: "C" },
+      pattern: { v: "NoPE on every 4th layer (3, 7, …, 71). Indexer: layers 0–16, then every layer except 4k+1 and 4k+2, run their own (44); 28 reuse the previous top-k. KV sharing: the 9 NoPE layers 39, 43, …, 71 have no KV projection and attend over layer 35's cached latent", s: "C" },
+      position: { v: "LeRoPE: interleaved RoPE on 64 dims, θ = 10k, YaRN ×2048, with each inverse frequency scaled by a learned exp(α). The indexer uses the same RoPE. The 18 NoPE layers use none in attention or indexer", s: "C" },
+      attnExtras: { v: "Learned per-head log-position query scaling, q · (s·log(pos+1) + b), in attention and indexer ('ssmax_scaling' in params.json). Indexer: 32 heads × 128, queries from LayerNorm(hidden) → projection, ReLU(q·k) summed with learned per-head weights; FP8 indexer keys", s: "C" },
+      ssm: { v: "—", s: "" },
+      moe: { v: "128 routed / top-4", s: "B+C" },
+      shared: { v: "1", s: "B+C" },
+      expertDim: { v: "6144 SwiGLU, as wide as the hidden size", s: "C" },
+      latent: { v: "No", s: "C" },
+      routing: { v: "Softmax over 128 experts in FP32 (router weight kept in FP32), one group, top-4 renormalized, × 1.0; no bias correction", s: "C" },
+      dense: { v: "1 (layer 0, SwiGLU 24,576)", s: "C" },
+      act: { v: "SwiGLU", s: "C" },
+      norm: { v: "Pre-norm RMSNorm with plain residual adds; RMSNorm on the KV latent; LayerNorm on the indexer's query input and key", s: "C" },
+      head: { v: "Untied embedding and LM head; logits tanh-softcapped at 30", s: "C" },
+      mtp: { v: "DSpark draft head in the checkpoint: 3 MLA + SwiGLU layers reading target activations from layers 1, 18, 36, 54 and 71, proposing blocks of 3 tokens (RNN head, Markov rank 512). SGLang and vLLM run it; transformers skips it", s: "C" },
+      kv: { v: "≈ 81 KiB per token in BF16: (54 × 576 + 9 × 512) × 2 B latents for the 63 cache-owning layers + 44 × 128 × 2 B indexer keys. FP8 KV and indexer caches (params.json) halve this", s: "D" },
+      state: { v: "None", s: "D" },
+      precision: { v: "FP8 E4M3 weights in 128 × 128 blocks with UE8M0 scales; vision tower, projector, LM head, kv_b and indexer key / weight projections kept higher. Official NVFP4 checkpoint for Blackwell", s: "C" },
+      modalities: { v: "Text + image → text; reasoning effort low / medium / high (default high)", s: "B+C" },
+      encoders: { v: "Pixtral-style ViT, ≈ 1.6B: 30 layers, 2048 wide, 16 heads, patch 14, images up to 1540 px, 2D RoPE, 2 × 2 patch merge into the LM", s: "B+C" },
+    },
+    paramBreakdown: null,
+    highlights: [
+      { t: "<b>Cross-layer KV sharing.</b> The nine NoPE layers from 39 to 71 have no KV projection; they attend over layer 35's cached latent. Only 63 of 72 layers store KV, and the borrowers still run their own indexer.", s: "C" },
+      { t: "<b>NoPE every fourth layer.</b> 18 layers use no positional encoding in attention or the indexer. All nine cache-borrowing layers are NoPE layers reading from a NoPE layer.", s: "C" },
+      { t: "<b>Learned positions and scales.</b> LeRoPE learns a scale for each RoPE frequency on top of YaRN, and every attention and indexer head learns a log-position scale for its queries.", s: "C" },
+      { t: "<b>Three weeks of RL after the preview.</b> Terminal-Bench 4.0 rose from 28% to 41% with 30% fewer output tokens, and RL took BrowseComp from an SFT checkpoint's 75% to 84.5%.", s: "B" },
+      { t: "<b>Pitched at defenders.</b> 51% on the Artificial Analysis Cyber Index while refusing 96.6% of harmful cyber prompts; a less restricted cyber variant goes to vetted partners only.", s: "B" },
+    ],
+    refs: {
+      arch: [
+        { label: "Model card: key features", url: "https://huggingface.co/mistralai/Mistral-Large-4-1T-A52B", s: "C" },
+        { label: "config.json", url: "https://huggingface.co/mistralai/Mistral-Large-4-1T-A52B/blob/main/config.json", s: "C" },
+        { label: "params.json", url: "https://huggingface.co/mistralai/Mistral-Large-4-1T-A52B/blob/main/params.json", s: "C" },
+        { label: "modular_mistral_large4.py", url: "https://github.com/huggingface/transformers/blob/main/src/transformers/models/mistral_large4/modular_mistral_large4.py", s: "C" },
+      ],
+      pretrain: [{ label: "Preview post: Forged in Europe", url: "https://mistral.ai/news/mistral-large-4/", s: "B" }],
+      sft: [{ label: "Preview post: RL at scale", url: "https://mistral.ai/news/mistral-large-4/", s: "B" }, { label: "Model card: recommended settings", url: "https://huggingface.co/mistralai/Mistral-Large-4-1T-A52B", s: "C" }],
+      rl: [{ label: "Preview post: RL at scale", url: "https://mistral.ai/news/mistral-large-4/", s: "B" }, { label: "Open-weights post", url: "https://mistral.ai/news/mistral-large-4-oss/", s: "B" }],
+      tricks: [{ label: "modular_mistral_large4.py", url: "https://github.com/huggingface/transformers/blob/main/src/transformers/models/mistral_large4/modular_mistral_large4.py", s: "C" }, { label: "Preview post", url: "https://mistral.ai/news/mistral-large-4/", s: "B" }],
+      bench: [{ label: "Open-weights post", url: "https://mistral.ai/news/mistral-large-4-oss/", s: "B" }, { label: "Preview post", url: "https://mistral.ai/news/mistral-large-4/", s: "B" }, { label: "Model card: benchmarks", url: "https://huggingface.co/mistralai/Mistral-Large-4-1T-A52B", s: "C" }],
+    },
+    tricks: [
+      { cat: "Long context", name: "Cross-layer KV sharing", t: "Layers whose kv_source_layers entry points back (39, 43, …, 71 → 35) drop kv_a_proj and attend over the source layer's cached latent, which the source keeps at full length. Their queries are still their own.", s: "C" },
+      { cat: "Long context", name: "NoPE every 4th layer", t: "Layers 3, 7, …, 71 skip rotary embedding in attention and in the indexer; their 64 RoPE query dims become content dims (QK stays 128).", s: "C" },
+      { cat: "Long context", name: "LeRoPE", t: "YaRN (factor 2048 over a 512-token base window, no magnitude scaling) with a learned per-frequency scale exp(α) on the inverse frequencies, kept in FP32.", s: "C" },
+      { cat: "Long context", name: "Log-position query scaling", t: "Queries in attention and the indexer are multiplied by s·log(pos+1) + b with learned per-head s and b, the scalable-softmax idea (params.json: ssmax_scaling).", s: "C" },
+      { cat: "Inference", name: "Shared indexer", t: "28 of 72 layers skip the lightning indexer and reuse the previous layer's top-2,048 selection; from layer 17 on, two of every four layers share.", s: "C" },
+      { cat: "Inference", name: "DSpark drafter", t: "A 3-layer draft model ships in the checkpoint and proposes blocks of 3 tokens from the target's layer-1, 18, 36, 54 and 71 activations; SGLang enables it with --speculative-algorithm DSPARK.", s: "C" },
+      { cat: "Numerics", name: "Logit softcap", t: "Output logits pass through 30 · tanh(logits / 30).", s: "C" },
+      { cat: "Numerics", name: "FP32 router and RoPE", t: "Router logits are computed in FP32 from an FP32 weight; the rotary module is also pinned to FP32.", s: "C" },
+      { cat: "RL", name: "Asynchronous RL at 33B tokens a day", t: "At about 3k GPUs, an autoscaling actor fleet generates tens of thousands of rollouts in parallel while training runs asynchronously: about 33B tokens a day, 16B of them trainable after filtering and masking. Rollouts can run to millions of tokens across compactions.", s: "B" },
+      { cat: "RL", name: "Composable environments", t: "One run mixes single-turn chat, science problems, safety, factuality and long-horizon tool use; verification combines reward models, unit tests, LLM judges and static checks. These are the same environments Mistral Forge offers customers.", s: "B" },
+    ],
+    pretrain: {
+      headline: "Trained from scratch on 3,800 Grace Blackwell GPUs; Mistral has not given a token count or data mix.",
+      stats: [
+        { k: "Compute", v: "3,800 NVIDIA Grace Blackwell GPUs, Mistral's own European datacenters", s: "B" },
+        { k: "Languages", v: "160+, including every official EU language; a significant share of the data is multilingual", s: "B" },
+        { k: "Tokens", v: "Not disclosed", s: "" },
+      ],
+      stages: [],
+      mixes: [],
+      notes: [{ t: "Mistral says a technical report is coming, with architecture, more benchmarks and post-training details.", s: "B" }],
+    },
+    sft: {
+      headline: "SFT then RL; the SFT data is not described.",
+      stats: [
+        { k: "Reasoning effort", v: "low / medium / high (default high); low replaces the earlier 'none' mode", s: "B+C" },
+        { k: "Sampling", v: "temperature 1.0, top-p 0.95 at every effort", s: "C" },
+      ],
+      stages: [],
+      mixes: [],
+      notes: [],
+    },
+    rl: {
+      headline: "Large asynchronous RL run, still going at the preview, plus three more weeks before the weights.",
+      stats: [
+        { k: "RL compute", v: "≈ 3k GPUs", s: "B" },
+        { k: "Throughput", v: "≈ 33B tokens a day, ≈ 16B trainable", s: "B" },
+        { k: "After preview", v: "3 more weeks of RL; BrowseComp 75.0 (SFT) → 84.5", s: "B" },
+      ],
+      methods: [
+        { name: "Async actor fleet", t: "Tens of thousands of parallel rollouts, training asynchronous, staleness kept low, long trajectories across multiple compactions.", s: "B" },
+        { name: "Mixed verifiers", t: "Reward models, unit tests, LLM judges and static checks, chosen per environment.", s: "B" },
+        { name: "Post-preview RL", t: "Focused on coding and defensive cybersecurity, and cut output tokens: Terminal-Bench 4.0 output down 30%.", s: "B" },
+      ],
+      notes: [],
+    },
+  },
+
 ];
 
 /*
@@ -4914,6 +5042,7 @@ window.BENCHMARKS = [
       super: { v: 60.67, n: "Terminus 2, 8 runs, 3 h timeout" },
       lightning: { v: 24.44 } } },
   { cat: "Agentic coding", name: "DeepSWE v1.1", unit: "%", cmp: false, scores: {
+      ml4: { v: 61.7, n: "preview checkpoint (2026-10-06)" },
       laguna: { v: 40.4, n: "pool harness (not mini-swe-agent), avg@3, 6 h" },
       hy4: { v: 64.3, n: "mini-swe-agent ('DeepSWE')" },
       mimo26f: { v: 67.9 },
@@ -4933,6 +5062,7 @@ window.BENCHMARKS = [
       beam: { v: 44.4, n: "card: 43.3" },
       super: { v: 24.6, n: "NVIDIA internal pass@1; 34.5 with parallel agents + verifier" } } },
   { cat: "Agentic coding", name: "SWE-Atlas Codebase QnA", unit: "%", scores: {
+      ml4: { v: 59.4, n: "preview checkpoint (2026-10-06)" },
       laguna: { v: 46.2, n: "avg@3, Opus 4.5 judge" },
       hy4: { v: 64.0, n: "Claude Code, 256 turns" },
       step5: { v: 63.6 },
@@ -4978,6 +5108,7 @@ window.BENCHMARKS = [
       glimmer: { v: 94.1, n: "TauBench telecom, 4 runs" },
       super: { v: 73.19 }, lightning: { v: 59.65 } } },
   { cat: "Tool use & agents", name: "BrowseComp", unit: "%", cmp: false, scores: {
+      ml4: { v: 84.5, n: "SFT checkpoint before RL: 75.0" },
       step5: { v: 88.7 },
       minimaxm3: { v: 83.5, n: "WebExplorer framework; history dropped past 64K" },
       dsv4flash: { v: 73.2, n: "Preview" },
@@ -5037,6 +5168,7 @@ window.BENCHMARKS = [
       mimo26: { v: 62.0 },
       kimik3: { v: 54.3, n: "official leaderboard" }, muse: { v: 61.8 } } },
   { cat: "Tool use & agents", name: "AutomationBench (public)", unit: "%", cmp: false, scores: {
+      ml4: { v: 59.9, n: "preview checkpoint; 657 business workflows" },
       lfm3: { v: 41.29 },
       hy4: { v: 32.1, n: "v1.0.6" },
       mimo26f: { v: 52.3, n: "v1.0.6" },
@@ -5255,6 +5387,7 @@ window.BENCHMARKS = [
       dsv4pro: { v: 11.8, n: "-0813" },
       glm53: { v: 28.3, n: "Claude Code, avg@3, 10 h" }, dsv41: { v: 30.0 } } },
   { cat: "Agentic coding", name: "Terminal-Bench 4.0", unit: "%", scores: {
+      ml4: { v: 41, n: "Artificial Analysis run; preview 28.3 (self-reported)" },
       mimo26f: { v: 28.8 },
       step5: { v: 33.3 },
       minimaxm31f: { v: 38.1, n: "Codex 0.149.1" },
@@ -5348,6 +5481,20 @@ window.BENCHMARKS = [
       minimaxm3: { v: 37.1, n: "Claude Code, Ralph loop, 12 h" },
       kimik3: { v: 36.6, n: "Harbor, 3 runs on H20" },
       glm53: { v: 39.8, n: "Claude Code, 3-run weighted mean" }, } },
+  { cat: "Agentic coding", name: "FrontierCode 2.0", unit: "%", scores: {
+      ml4: { v: 19.7, n: "Cognition, private benchmark" }, } },
+  { cat: "Agentic coding", name: "AA Coding Agent Index", unit: "%", scores: {
+      ml4: { v: 48, n: "Artificial Analysis; 47% fewer tokens per task than GLM-5.3; preview 49.8" }, } },
+  { cat: "Agentic coding", name: "AA Cyber Index", unit: "%", scores: {
+      ml4: { v: 51, n: "Artificial Analysis" }, } },
+  { cat: "Tool use & agents", name: "FinWorkBench (Finch)", unit: "%", scores: {
+      ml4: { v: 73.3, n: "preview 67.4" }, } },
+  { cat: "Safety", name: "B3 Agent Security (attack resistance)", unit: "%", scores: {
+      ml4: { v: 97.1, n: "Lakera B3; preview 93.3" }, } },
+  { cat: "Safety", name: "Harmful cyber request refusal", unit: "%", scores: {
+      ml4: { v: 96.6, n: "cyber prompts from JailbreakBench, StrongREJECT and AgentHarm; preview 95" }, } },
+  { cat: "Composite", name: "AA Intelligence Index v5", unit: "idx", scores: {
+      ml4: { v: 26, n: "Artificial Analysis, from the model card" }, } },
 ];
 
 /* Nemotron base-model results (Table 6 of the report). */
