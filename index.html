@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Frontier LLM Catalogue</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="A source-cited catalogue of current open-weight LLMs, read down to the config file: layer layouts, attention and routing, training stages, RL methods and benchmarks.">
+<meta property="og:title" content="Frontier LLM Catalogue">
+<meta property="og:description" content="Current open-weight LLMs compared at config-file depth, with every fact cited to its source.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#fdfdfd">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='5' fill='%23fdfdfd'/%3E%3Crect x='6' y='7' width='20' height='4' fill='%231a1a1a'/%3E%3Crect x='6' y='14' width='20' height='4' fill='%230b5fff'/%3E%3Crect x='6' y='21' width='20' height='4' fill='%231a1a1a'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+
+<header class="appbar" id="appbar">
+  <div class="wrap appbar-row">
+    <button type="button" class="brand" id="go-home" aria-label="Frontier LLM Catalogue, overview">
+      <span class="brand-name">Frontier LLM Catalogue</span>
+      <span class="brand-ed">Oct 2026</span>
+    </button>
+    <nav class="topnav" aria-label="Views">
+      <button type="button" id="nav-home" class="tab">Overview</button>
+      <label class="sr-only" for="pick-one">Open a model</label>
+      <select id="pick-one" class="pick-select"></select>
+      <button type="button" id="mode-two" class="tab">Compare</button>
+    </nav>
+  </div>
+  <div class="subbar" id="subbar" hidden>
+    <div class="wrap subbar-row">
+      <div class="compare-pick" id="compare-pick" hidden>
+        <label for="pick-a">A <select id="pick-a"></select></label>
+        <button type="button" class="swap" id="swap" aria-label="Swap A and B">⇄</button>
+        <label for="pick-b">B <select id="pick-b"></select></label>
+      </div>
+      <span class="rail-title" id="rail-title"></span>
+      <nav aria-label="Sections" id="rail-nav" class="rail-nav">
+        <button type="button" data-go="sec-overview">Overview</button>
+        <button type="button" data-go="sec-architecture">Architecture</button>
+        <button type="button" data-go="sec-pretrain">Pretraining</button>
+        <button type="button" data-go="sec-sft">Fine-tuning</button>
+        <button type="button" data-go="sec-rl">RL</button>
+        <button type="button" data-go="sec-tricks">Tricks</button>
+        <button type="button" data-go="sec-bench">Benchmarks</button>
+        <button type="button" data-go="sec-sources">Sources</button>
+      </nav>
+    </div>
+  </div>
+</header>
+
+<main id="view"></main>
+
+<footer class="wrap">
+  <div class="legend-row" id="src-legend" aria-label="Source key"></div>
+  <p>Compiled 2026-10-29. Each fact cites the highest-tier source that states it: (1) technical report, (2) the lab's official blog, (3) the Hugging Face model card, transformers implementation and config.json, (4) other sources such as X posts and third-party blogs. Benchmarks are self-reported unless a note names another source.</p>
+</footer>
+<footer class="site-footer">A project by <a class="ext" href="https://www.sunnyguha.com/projects">Sunny Guha</a></footer>
+
+<div id="tip" hidden></div>
+
+<script src="data/models.js"></script>
+<script src="data/diagrams.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
