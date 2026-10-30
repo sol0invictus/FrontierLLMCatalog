@@ -1551,10 +1551,10 @@ window.DIAGRAMS = {
 
   ml4: {
     s: "C",
-    caption: "One Mistral Large 4 layer, repeated 72 times. Every layer is MLA with DeepSeek Sparse Attention and no query LoRA. Every fourth layer drops RoPE, 28 layers reuse the previous indexer's picks, and 9 late NoPE layers read layer 35's KV cache instead of their own.",
+    caption: "One Mistral Large 4 layer, repeated 72 times. Every layer is MLA with DeepSeek Sparse Attention and no query LoRA. The indexer reads the normed hidden state alongside Q and KV and picks the 2,048 tokens attention may use. Every fourth layer drops RoPE, 28 layers reuse the previous layer's picks, and 9 late NoPE layers read layer 35's cached latent but expand it with their own up-projection, so their keys and values are their own.",
     inputs: [{ row: [
       { l: "Token embedding", s: "204,800 × 6144" },
-      { l: "Pixtral ViT ≈ 1.6B", s: "30 layers, 1540 px, 2 × 2 merge" },
+      { l: "Pixtral ViT + projector", s: "≈ 1.6B ViT → 2×2 merge → MLP", n: true },
     ] }],
     block: {
       title: "Decoder layer",
@@ -1568,12 +1568,13 @@ window.DIAGRAMS = {
             { l: "RMSNorm" },
             { row: [
               { l: "Q: 6144 → 64 × 128", s: "full rank, no Q-LoRA", n: true },
-              { l: "KV latent 512 + RoPE 64", s: "cached; L39…71 read L35's", n: true },
+              { l: "KV latent 512 + 64", s: "RMSNorm, cached", n: true },
+              { l: "Indexer: top-2,048", s: "28 layers reuse", n: true },
             ] },
-            { l: "LeRoPE: YaRN × learned α", s: "interleaved, 64 dims; NoPE every 4th", n: true },
-            { l: "Log-position query scale", s: "q · (s·log(pos+1) + b) per head", n: true },
-            { l: "Indexer: top-2,048 tokens", s: "44 layers compute, 28 reuse", n: true },
-            { l: "Sparse attention", s: "64 heads × 128 over selected", n: true },
+            { l: "LeRoPE: YaRN × learned α", s: "q and k, 64 dims; none on NoPE layers", n: true },
+            { l: "SSMax query scale", s: "q · (s·log(pos+1) + b) per head", n: true },
+            { l: "K, V up-projection (kv_b)", s: "own weights; L39…71 expand L35's latent", n: true },
+            { l: "Sparse attention", s: "64 heads over the 2,048 picked tokens", n: true },
             { l: "Output projection", s: "64 × 128 → 6144" },
           ],
           merge: { l: "+ residual" },
@@ -1585,9 +1586,9 @@ window.DIAGRAMS = {
             { l: "Softmax router (FP32)", s: "top-4 of 128, renormalized" },
             { row: [
               { l: "4 SwiGLU experts", s: "6144 → 6144 → 6144" },
-              { l: "1 shared expert", s: "SwiGLU 6144" },
+              { l: "1 shared expert", s: "SwiGLU 6144, unweighted" },
             ] },
-            { l: "Weighted sum", s: "× 1.0" },
+            { l: "Routed sum × 1.0 + shared", s: "weights apply to routed experts only" },
           ],
           merge: { l: "+ residual" },
         },
@@ -1597,11 +1598,10 @@ window.DIAGRAMS = {
       { l: "Final RMSNorm" },
       { row: [
         { l: "LM head, softcap 30", s: "30 · tanh(z / 30), untied", n: true },
-        { l: "DSpark drafter", s: "3 layers, 3-token blocks", n: true },
+        { l: "DSpark drafter, 3 layers", s: "reads L1, 18, 36, 54, 71", n: true },
       ] },
     ],
   },
-
 };
 
 /*
