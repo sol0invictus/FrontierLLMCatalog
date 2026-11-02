@@ -1656,7 +1656,7 @@ window.STACKS = {
       return { i, mode: nope(i) ? "nope" : "full", t: `${pos} · own KV · own top-2048${i === 0 ? " · dense FFN" : ""}` };
     });
     return {
-      s: "C",
+      s: "R+C",
       columns: [
         { title: "Layers 0–35", note: ["Every layer caches its own MLA latent", "L0 dense FFN; L1–71 MoE, 128 → 4 + 1 shared"], from: 0, to: 35 },
         { title: "Layers 36–71", note: ["NoPE layers 39, 43, …, 71 read L35's cache", "Two of every four layers reuse the indexer"], from: 36, to: 71 },
@@ -1667,7 +1667,7 @@ window.STACKS = {
       input: "Text + Pixtral image tokens",
       bridge: "L35 → L36",
       output: ["LM head, softcap 30", "DSpark drafter, 3 layers"],
-      caption: "All 72 layers of Mistral Large 4, bottom to top. Each layer's role comes from three config fields: the NoPE pattern, indexer_types and kv_source_layers. Only 63 layers store KV; the 9 late NoPE layers attend over layer 35's latent but still pick their own top-2,048 tokens.",
+      caption: "All 72 layers of Mistral Large 4, bottom to top. Each layer's role comes from three config fields: the NoPE pattern, indexer_types and kv_source_layers. The NoPE layers are the original full-attention layers; the others were 512-token sliding-window layers until the model surgery opened them (report §3). Only 63 layers store KV: the YOCO sharing that survived surgery has the 9 late NoPE layers attend over layer 35's latent, though each still picks its own top-2,048 tokens.",
     };
   })(),
 };
