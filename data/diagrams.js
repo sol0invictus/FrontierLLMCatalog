@@ -443,6 +443,60 @@ window.DIAGRAMS = {
     ],
   },
 
+  kimik31: {
+    s: "R+C+X",
+    caption: "One Kimi K3.1 Pro layer, repeated 93 times. It is Kimi K3's layer with one change: the fourth layer of each block (and the last) is now Gated MLA with DeepSeek Sparse Attention. Its own indexer picks 2,048 earlier tokens per query, and MLA attends only to those. The KDA layers, AttnRes and the latent MoE are unchanged. Built from config.json and the weight index; the repo ships no modeling code, so the K3 code and the vLLM indexer fill the rest.",
+    inputs: [
+      { row: [
+        { l: "Token embedding", s: "163,840 × 7168" },
+        { l: "MoonViT-V2", s: "27 layers, as in K3" },
+      ] },
+    ],
+    block: {
+      title: "Layer",
+      repeat: "× 93",
+      stream: "AttnRes: 9 block summaries",
+      note: "Layer 0: dense SiTU-GLU FFN (33,792) instead of MoE",
+      branches: [
+        {
+          title: "Token mixer (69 KDA + 24 DSA)",
+          steps: [
+            { l: "AttnRes mix", s: "softmax(w · RMSNorm(blocks))", n: true },
+            { l: "RMSNorm" },
+            { l: "KDA: q, k, v → conv4 + SiLU", s: "gated delta rule, 96 × 128", n: true },
+            { l: "or Gated MLA + DSA (NoPE)", s: "Q-LoRA 1536, latent 512", n: true },
+            { row: [
+              { l: "Indexer q: Q latent", s: "1536 → 32 × 128", n: true },
+              { l: "Indexer k: LayerNorm", s: "7168 → 128, no RoPE", n: true },
+            ] },
+            { l: "Sparse MLA, top-2,048", s: "96 heads over picked tokens", n: true },
+            { l: "× σ(W_g x), full rank", s: "KDA: after head-wise RMSNorm", n: true },
+            { l: "Output projection" },
+          ],
+          merge: { l: "add to block partial sum", s: "summary every 12 layers", n: true },
+        },
+        {
+          title: "Stable LatentMoE",
+          steps: [
+            { l: "AttnRes mix", s: "own pseudo-query", n: true },
+            { l: "RMSNorm" },
+            { l: "Sigmoid router (FP32)", s: "+ QB bias → top-16 of 896", n: true },
+            { row: [
+              { l: "W↓ 7168 → 3584", s: "16 SiTU-GLU experts (3072)", n: true },
+              { l: "2 shared experts", s: "full width, SiTU-GLU" },
+            ] },
+            { l: "RMSNorm → W↑ 3584 → 7168", s: "on the weighted sum", n: true },
+          ],
+          merge: { l: "add to block partial sum", s: "plus shared output", n: true },
+        },
+      ],
+    },
+    outputs: [
+      { l: "AttnRes over all blocks → RMSNorm", n: true },
+      { l: "LM head", s: "untied, no softcap; no draft shipped" },
+    ],
+  },
+
 
   glm53: {
     s: "R+B+C",

@@ -10,7 +10,7 @@ Models covered (32): Muse Spark Open and Muse Glimmer 30B (Meta), Inkling and In
 - **One model**: pick a model and read its full dossier top to bottom: overview, layer diagram, spec sheet, memory per sequence, pretraining stages and mixes, fine-tuning, RL methods, benchmarks with settings, and sources. Link: `#model-<id>` (e.g. `#model-beam`).
 - **Compare two**: choose Model A and Model B (at most two). Every section is side by side. The benchmark table shows A − B where settings are comparable. Link: `#compare-<a>-<b>` (e.g. `#compare-muse-beam`).
 
-Model ids: `muse`, `glimmer`, `inkling`, `inklingsm`, `dsv41`, `dsv4pro`, `dsv4flash`, `beam`, `super`, `lightning`, `ultra3`, `kimik3`, `glm53`, `glm53f`, `mimo26`, `mimo26f`, `qwen38`, `qwen38fn`, `qwen3827`, `minimaxm3`, `minimaxm31f`, `step5`, `hy4`, `motif3`, `laguna`, `lfm25`, `lfm3`, `gemma4`, `gptoss`, `olmo3`, `smollm3`, `ml4`. Pick the model from the dropdown (grouped by lab).
+Model ids: `muse`, `glimmer`, `inkling`, `inklingsm`, `dsv41`, `dsv4pro`, `dsv4flash`, `beam`, `super`, `lightning`, `ultra3`, `kimik3`, `kimik31`, `glm53`, `glm53f`, `mimo26`, `mimo26f`, `qwen38`, `qwen38fn`, `qwen3827`, `minimaxm3`, `minimaxm31f`, `step5`, `hy4`, `motif3`, `laguna`, `lfm25`, `lfm3`, `gemma4`, `gptoss`, `olmo3`, `smollm3`, `ml4`. Pick the model from the dropdown (grouped by lab).
 
 ## Layout
 
