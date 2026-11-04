@@ -445,7 +445,8 @@ window.DIAGRAMS = {
 
   kimik31: {
     s: "R+C+X",
-    caption: "One Kimi K3.1 Pro layer, repeated 93 times. It is Kimi K3's layer with one change: the fourth layer of each block (and the last) is now Gated MLA with DeepSeek Sparse Attention. Its own indexer picks 2,048 earlier tokens per query, and MLA attends only to those. The KDA layers, AttnRes and the latent MoE keep K3's design, though every weight was retrained. Built from config.json and the weight index; the repo ships no modeling code, so the K3 code and the vLLM indexer fill the rest.",
+    base: "Kimi K3",
+    caption: "One Kimi K3.1 Pro layer, repeated 93 times. It is Kimi K3's layer with one change: the fourth layer of each block (and the last) is now Gated MLA with DeepSeek Sparse Attention. Its own indexer picks 2,048 earlier tokens per query, and MLA attends only to those. The KDA layers, AttnRes and the latent MoE keep K3's design, though every weight was retrained. Orange tags mark the four steps that are new or changed from K3. Built from config.json and the weight index; the repo ships no modeling code, so the K3 code and the vLLM indexer fill the rest.",
     inputs: [
       { row: [
         { l: "Token embedding", s: "163,840 × 7168" },
@@ -464,12 +465,12 @@ window.DIAGRAMS = {
             { l: "AttnRes mix", s: "softmax(w · RMSNorm(blocks))", n: true },
             { l: "RMSNorm" },
             { l: "KDA: q, k, v → conv4 + SiLU", s: "gated delta rule, 96 × 128", n: true },
-            { l: "or Gated MLA + DSA (NoPE)", s: "Q-LoRA 1536, latent 512", n: true },
+            { l: "or Gated MLA + DSA (NoPE)", s: "K3: dense MLA; latent 512", n: true, c: "changed" },
             { row: [
-              { l: "Indexer q: Q latent", s: "1536 → 32 × 128", n: true },
-              { l: "Indexer k: LayerNorm", s: "7168 → 128, no RoPE", n: true },
+              { l: "Indexer q: Q latent", s: "1536 → 32 × 128", n: true, c: "new" },
+              { l: "Indexer k: LayerNorm", s: "7168 → 128, no RoPE", n: true, c: "new" },
             ] },
-            { l: "Sparse MLA, top-2,048", s: "96 heads over picked tokens", n: true },
+            { l: "Sparse MLA, top-2,048", s: "96 heads over picked tokens", n: true, c: "new" },
             { l: "× σ(W_g x), full rank", s: "KDA: after head-wise RMSNorm", n: true },
             { l: "Output projection" },
           ],

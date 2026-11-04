@@ -30,6 +30,8 @@
   --bar: #b4b4b4;
   --bar-best: #0b5fff;
   --heat-hi-ink: #ffffff;
+  /* Diagram: steps changed from a base model. */
+  --delta: #c2410c;
 
   /* Layer-type identity colors: categorical, validated light. */
   --k-global: #2a78d6;
@@ -521,6 +523,11 @@ figure.dg { margin: 0; display: flex; flex-direction: column; gap: 0.75rem; }
 .dg figcaption { font-size: var(--step--1); color: var(--ink-2); max-width: 80ch; }
 .dg-key { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--ink-3); margin-left: 0.25rem; }
 .dg-swatch { width: 0.85rem; height: 0.6rem; border-radius: 2px; background: var(--accent-soft); border: 1.5px solid var(--accent); display: inline-block; }
+/* Steps that are new or changed relative to the model's base (DIAGRAMS[id].base). */
+.dg-box.dg-chg { stroke: var(--delta); stroke-width: 2.25; }
+.dg-tag { fill: var(--delta); }
+.dg-tag-t { font-family: var(--font-mono); font-size: 9px; font-weight: 700; letter-spacing: 0.06em; fill: var(--surface); }
+.dg-swatch.dg-swatch-chg { background: var(--surface); border: 2px solid var(--delta); }
 .pick-meta { font-size: var(--step--1); color: var(--ink-3); }
 .compare-pick select { max-width: min(26rem, 100%); }
 #one-pick label { font-weight: 500; }
@@ -7072,7 +7079,8 @@ window.DIAGRAMS = {
 
   kimik31: {
     s: "R+C+X",
-    caption: "One Kimi K3.1 Pro layer, repeated 93 times. It is Kimi K3's layer with one change: the fourth layer of each block (and the last) is now Gated MLA with DeepSeek Sparse Attention. Its own indexer picks 2,048 earlier tokens per query, and MLA attends only to those. The KDA layers, AttnRes and the latent MoE keep K3's design, though every weight was retrained. Built from config.json and the weight index; the repo ships no modeling code, so the K3 code and the vLLM indexer fill the rest.",
+    base: "Kimi K3",
+    caption: "One Kimi K3.1 Pro layer, repeated 93 times. It is Kimi K3's layer with one change: the fourth layer of each block (and the last) is now Gated MLA with DeepSeek Sparse Attention. Its own indexer picks 2,048 earlier tokens per query, and MLA attends only to those. The KDA layers, AttnRes and the latent MoE keep K3's design, though every weight was retrained. Orange tags mark the four steps that are new or changed from K3. Built from config.json and the weight index; the repo ships no modeling code, so the K3 code and the vLLM indexer fill the rest.",
     inputs: [
       { row: [
         { l: "Token embedding", s: "163,840 × 7168" },
@@ -7091,12 +7099,12 @@ window.DIAGRAMS = {
             { l: "AttnRes mix", s: "softmax(w · RMSNorm(blocks))", n: true },
             { l: "RMSNorm" },
             { l: "KDA: q, k, v → conv4 + SiLU", s: "gated delta rule, 96 × 128", n: true },
-            { l: "or Gated MLA + DSA (NoPE)", s: "Q-LoRA 1536, latent 512", n: true },
+            { l: "or Gated MLA + DSA (NoPE)", s: "K3: dense MLA; latent 512", n: true, c: "changed" },
             { row: [
-              { l: "Indexer q: Q latent", s: "1536 → 32 × 128", n: true },
-              { l: "Indexer k: LayerNorm", s: "7168 → 128, no RoPE", n: true },
+              { l: "Indexer q: Q latent", s: "1536 → 32 × 128", n: true, c: "new" },
+              { l: "Indexer k: LayerNorm", s: "7168 → 128, no RoPE", n: true, c: "new" },
             ] },
-            { l: "Sparse MLA, top-2,048", s: "96 heads over picked tokens", n: true },
+            { l: "Sparse MLA, top-2,048", s: "96 heads over picked tokens", n: true, c: "new" },
             { l: "× σ(W_g x), full rank", s: "KDA: after head-wise RMSNorm", n: true },
             { l: "Output projection" },
           ],
@@ -8606,9 +8614,15 @@ window.STACKS = {
     // Draws one box; returns its geometry.
     function box(node, x, y, w) {
       const h = node.s ? BOX_HS : BOX_H;
-      out.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="5" class="dg-box${node.n ? " dg-novel" : ""}"><title>${esc(node.l + (node.s ? " — " + node.s : ""))}</title></rect>`);
+      out.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="5" class="dg-box${node.n ? " dg-novel" : ""}${node.c ? " dg-chg" : ""}"><title>${esc(node.l + (node.s ? " — " + node.s : "") + (node.c ? ` (${node.c} vs ${D.base})` : ""))}</title></rect>`);
       out.push(t(x + w / 2, y + (node.s ? 18 : 19.5), node.l, "dg-l", "middle", w - 12));
       if (node.s) out.push(t(x + w / 2, y + 34, node.s, "dg-s", "middle", w - 12));
+      // Tag on the top edge for steps that are new or changed relative to the base model (D.base).
+      if (node.c) {
+        const tag = node.c.toUpperCase(), tw = tag.length * 6.2 + 10;
+        out.push(`<rect x="${x + w - tw - 8}" y="${y - 7}" width="${tw}" height="14" rx="3" class="dg-tag"/>`);
+        out.push(t(x + w - tw / 2 - 8, y + 3.5, tag, "dg-tag-t"));
+      }
       return { cx: x + w / 2, top: y, bottom: y + h, h };
     }
     // Orthogonal connector from (x1,y1) down to (x2,y2).
@@ -8712,12 +8726,14 @@ window.STACKS = {
     const o = path(D.outputs, cx, w, yb + 6, [{ x: cur.points[0].x, y: frameBottom }]);
     const H = o.y + 16;
     const novelCount = JSON.stringify(D).split('"n":true').length - 1;
+    const chgCount = JSON.stringify(D).split('"c":"').length - 1;
+    const chgKey = chgCount && D.base ? ` <span class="dg-key"><span class="dg-swatch dg-swatch-chg"></span>Tagged (${chgCount}): new or changed from ${esc(D.base)}.</span>` : "";
     return `<figure class="dg">
       <div class="dg-scroll"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(D.caption)}" class="dg-svg">
         <defs><marker id="${aid}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-head"/></marker></defs>
         ${out.join("\n")}
       </svg></div>
-      <figcaption>${esc(D.caption)} <span class="dg-key"><span class="dg-swatch"></span>Highlighted (${novelCount}): departs from a standard Llama-style block.</span> Built from the published model code${src(D.s)}</figcaption>
+      <figcaption>${esc(D.caption)} <span class="dg-key"><span class="dg-swatch"></span>Highlighted (${novelCount}): departs from a standard Llama-style block.</span>${chgKey} Built from the published model code${src(D.s)}</figcaption>
     </figure>`;
   }
 

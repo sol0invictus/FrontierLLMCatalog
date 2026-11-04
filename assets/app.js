@@ -249,9 +249,15 @@
     // Draws one box; returns its geometry.
     function box(node, x, y, w) {
       const h = node.s ? BOX_HS : BOX_H;
-      out.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="5" class="dg-box${node.n ? " dg-novel" : ""}"><title>${esc(node.l + (node.s ? " — " + node.s : ""))}</title></rect>`);
+      out.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="5" class="dg-box${node.n ? " dg-novel" : ""}${node.c ? " dg-chg" : ""}"><title>${esc(node.l + (node.s ? " — " + node.s : "") + (node.c ? ` (${node.c} vs ${D.base})` : ""))}</title></rect>`);
       out.push(t(x + w / 2, y + (node.s ? 18 : 19.5), node.l, "dg-l", "middle", w - 12));
       if (node.s) out.push(t(x + w / 2, y + 34, node.s, "dg-s", "middle", w - 12));
+      // Tag on the top edge for steps that are new or changed relative to the base model (D.base).
+      if (node.c) {
+        const tag = node.c.toUpperCase(), tw = tag.length * 6.2 + 10;
+        out.push(`<rect x="${x + w - tw - 8}" y="${y - 7}" width="${tw}" height="14" rx="3" class="dg-tag"/>`);
+        out.push(t(x + w - tw / 2 - 8, y + 3.5, tag, "dg-tag-t"));
+      }
       return { cx: x + w / 2, top: y, bottom: y + h, h };
     }
     // Orthogonal connector from (x1,y1) down to (x2,y2).
@@ -355,12 +361,14 @@
     const o = path(D.outputs, cx, w, yb + 6, [{ x: cur.points[0].x, y: frameBottom }]);
     const H = o.y + 16;
     const novelCount = JSON.stringify(D).split('"n":true').length - 1;
+    const chgCount = JSON.stringify(D).split('"c":"').length - 1;
+    const chgKey = chgCount && D.base ? ` <span class="dg-key"><span class="dg-swatch dg-swatch-chg"></span>Tagged (${chgCount}): new or changed from ${esc(D.base)}.</span>` : "";
     return `<figure class="dg">
       <div class="dg-scroll"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(D.caption)}" class="dg-svg">
         <defs><marker id="${aid}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-head"/></marker></defs>
         ${out.join("\n")}
       </svg></div>
-      <figcaption>${esc(D.caption)} <span class="dg-key"><span class="dg-swatch"></span>Highlighted (${novelCount}): departs from a standard Llama-style block.</span> Built from the published model code${src(D.s)}</figcaption>
+      <figcaption>${esc(D.caption)} <span class="dg-key"><span class="dg-swatch"></span>Highlighted (${novelCount}): departs from a standard Llama-style block.</span>${chgKey} Built from the published model code${src(D.s)}</figcaption>
     </figure>`;
   }
 
