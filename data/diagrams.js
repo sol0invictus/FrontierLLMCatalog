@@ -445,7 +445,7 @@ window.DIAGRAMS = {
 
   kimik31: {
     s: "R+C+X",
-    caption: "One Kimi K3.1 Pro layer, repeated 93 times. It is Kimi K3's layer with one change: the fourth layer of each block (and the last) is now Gated MLA with DeepSeek Sparse Attention. Its own indexer picks 2,048 earlier tokens per query, and MLA attends only to those. The KDA layers, AttnRes and the latent MoE are unchanged. Built from config.json and the weight index; the repo ships no modeling code, so the K3 code and the vLLM indexer fill the rest.",
+    caption: "One Kimi K3.1 Pro layer, repeated 93 times. It is Kimi K3's layer with one change: the fourth layer of each block (and the last) is now Gated MLA with DeepSeek Sparse Attention. Its own indexer picks 2,048 earlier tokens per query, and MLA attends only to those. The KDA layers, AttnRes and the latent MoE keep K3's design, though every weight was retrained. Built from config.json and the weight index; the repo ships no modeling code, so the K3 code and the vLLM indexer fill the rest.",
     inputs: [
       { row: [
         { l: "Token embedding", s: "163,840 × 7168" },

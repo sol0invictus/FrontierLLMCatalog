@@ -2784,7 +2784,7 @@ window.MODELS = [
   /* ------------------------------------------------------------------ */
   {
     id: "kimik31",
-    glance: { date: "2026-11-02", attn: "KDA linear + MLA-DSA · 3:1", moe: "896 → 16 + 2, latent", tokens: "n/d", report: "Blog + K3 report", sig: "Kimi K3 post-trained further, with DSA indexers added to its 24 MLA layers" },
+    glance: { date: "2026-11-02", attn: "KDA linear + MLA-DSA · 3:1", moe: "896 → 16 + 2, latent", tokens: "n/d", report: "Blog + K3 report", sig: "Kimi K3 trained further (new mid-training + RL), with DSA indexers added to its 24 MLA layers" },
     benchSource: { s: "B", t: "Launch blog charts (tier 2). The model card repeats the same 47 scores. Reasoning effort max, temperature 1.0, top-p 0.95 (BrowseComp top-p 1.0). Most agentic scores use the Claude Code harness; GDPval-AA, AA-Briefcase and AutomationBench-AA are cited from Artificial Analysis, APEX-Agents from Mercor's leaderboard." },
     name: "Kimi K3.1 Pro",
     org: "Moonshot AI",
@@ -2794,7 +2794,7 @@ window.MODELS = [
     contextShort: "1M",
     modalitiesShort: "Text, image → text",
     tagline:
-      "Kimi K3 with much more post-training and one architectural change: its 24 full-attention Gated MLA layers become Gated DeepSeek Sparse Attention. Each gains a lightning indexer that picks 2,048 tokens per query. The 69 Kimi Delta Attention layers, AttnRes and the 896-expert latent MoE are unchanged.",
+      "Kimi K3 trained further, with a new mid-training stage and much larger joint RL, plus one architectural change. Its 24 full-attention Gated MLA layers become Gated DeepSeek Sparse Attention, each with a lightning indexer that picks 2,048 tokens per query. Every other tensor keeps K3's shape; the 69 Kimi Delta Attention layers, AttnRes and the 896-expert latent MoE are unchanged in design.",
     disclosure: { arch: "detailed", pretrain: "minimal", sft: "minimal", rl: "partial" },
     docs: [
       { kind: "R", label: "Kimi K3 technical report (arXiv 2607.24653; base architecture and pretraining)", url: "https://arxiv.org/abs/2607.24653" },
@@ -2807,6 +2807,7 @@ window.MODELS = [
       { kind: "C", label: "encoding_k3.py (chat encoder, model repo)", url: "https://huggingface.co/moonshotai/Kimi-K3.1-Pro/blob/main/encoding_k3.py" },
       { kind: "C", label: "modeling_kimi_linear.py (Kimi K3 repo; K3.1 ships no modeling code)", url: "https://huggingface.co/moonshotai/Kimi-K3/blob/main/modeling_kimi_linear.py" },
       { kind: "C", label: "Kimi K3.1-Pro License", url: "https://huggingface.co/moonshotai/Kimi-K3.1-Pro/blob/main/LICENSE" },
+      { kind: "C", label: "Kimi K3 weights (compared tensor by tensor with K3.1's)", url: "https://huggingface.co/moonshotai/Kimi-K3/blob/main/model.safetensors.index.json" },
       { kind: "X", label: "vLLM PR #65685: Kimi K3.1 Pro (DSA indexer code)", url: "https://github.com/vllm-project/vllm/pull/65685" },
       { kind: "X", label: "SGLang PR #48415: basic Kimi-K3.1 support", url: "https://github.com/sgl-project/sglang/pull/48415" },
       { kind: "X", label: "vLLM recipe for Kimi-K3.1-Pro", url: "https://github.com/vllm-project/vllm/blob/main/recipes/models/moonshotai/Kimi-K3.1-Pro.yaml" },
@@ -2831,7 +2832,7 @@ window.MODELS = [
       shared: { v: "2 full-width (one MLP of width 2 × 3072)", s: "C" },
       expertDim: { v: "3072, inside a 3584-dim latent", s: "C" },
       latent: { v: "Yes, Stable LatentMoE as in K3: routed experts run on W↓x (7168 → 3584), and an RMSNorm on their weighted sum precedes W↑ (3584 → 7168). Shared experts stay full width", s: "R+C" },
-      routing: { v: "Sigmoid scores in FP32. An aux-loss-free bias picks the top 16 but is left out of the weights, which are renormalized over the 16 (scale 1.0). The bias comes from K3's Quantile Balancing; the config is unchanged", s: "R+C" },
+      routing: { v: "Sigmoid scores in FP32. An aux-loss-free bias picks the top 16 but is left out of the weights, which are renormalized over the 16 (scale 1.0). The bias comes from K3's Quantile Balancing. In the released weights the biases are byte-identical to K3's (checked on layers 10, 40 and 70) while the router weights changed, so the biases were frozen during K3.1's training", s: "R+C+D" },
       dense: { v: "1 (layer 0, SiTU-GLU width 33,792)", s: "C" },
       act: { v: "SiTU-GLU: 4·tanh(g/4)·σ(g) ⊙ 25·tanh(u/25), bounded by 100 (activation_situ_beta 4, linear beta 25)", s: "R+C" },
       norm: { v: "Pre-norm RMSNorm with Block Attention Residuals (blocks of 12 layers), unchanged from K3", s: "R+C" },
@@ -2845,7 +2846,8 @@ window.MODELS = [
     },
     paramBreakdown: null,
     highlights: [
-      { t: "<b>Sparse attention retrofitted onto K3.</b> Every weight name in the checkpoint matches Kimi K3's except 120 new tensors: an indexer (wq_b, wk, weights_proj and a LayerNorm) on each of the 24 MLA layers. The indexer scores every cached token cheaply and passes the 2,048 best to MLA.", s: "C+D" },
+      { t: "<b>Sparse attention retrofitted onto K3.</b> All 497,220 of K3's tensors are in the checkpoint with the same shape and dtype. The only additions are 120 tensors (178.5M parameters): an indexer (wq_b, wk, weights_proj and a LayerNorm) on each of the 24 MLA layers. It scores every cached token cheaply and passes the 2,048 best to MLA.", s: "C+D" },
+      { t: "<b>Retrained, not patched.</b> Every learned tensor sampled differs from K3's: MLA and KDA weights, router, experts, AttnRes projections, norms and the vision tower. Only the routing biases are byte-identical. That fits the blog: K3.1 had its own mid-training stage and RL, not just new weights grafted onto K3.", s: "B+C+D" },
       { t: "<b>One indexer per DSA layer.</b> GLM-5.3 runs 21 indexers across 78 layers and Mistral Large 4 runs 44 across 72, sharing picks with the rest. K3.1 has only 24 global layers, so each runs its own, for 0.18B parameters in total.", s: "C" },
       { t: "<b>NoPE indexer.</b> index_rope_dim = 0, so the indexer has no positional encoding, like the MLA layers it serves. Long context still runs to 1M with no RoPE rescaling.", s: "C" },
       { t: "<b>RL across hundreds of domains.</b> K3.1 Pro is K3 with substantially more post-training compute. Moonshot reworked the RL framework, long-context inference, sandboxes, rollout scheduling and environment quality checks so that more RL compute gives stable, predictable gains.", s: "B" },
@@ -2889,12 +2891,12 @@ window.MODELS = [
       { cat: "Data", name: "Targeted cyber data removal", t: "Vulnerability-research skill rose steadily with post-training. Moonshot traced it to cyber content in the mid-training corpus and cyber tasks in the RL mix, and removed both while keeping general coding tasks.", s: "B" },
       { cat: "RL", name: "Shared environment quality platform", t: "Joint RL over hundreds of domains runs on one shared platform for environment quality checks, alongside reworked sandboxes and rollout scheduling.", s: "B" },
       { cat: "Post-training", name: "Medium effort in the encoder", t: "The card and API list low, high and max reasoning effort. The shipped chat encoder also accepts 'medium', which K3's encoder rejected.", s: "C" },
-      { cat: "Inference", name: "Highspeed variant", t: "Kimi K3.1 Pro Highspeed runs 2–3× faster on Moonshot's API. Moonshot has not said how, and its weights are not released.", s: "B" },
+      { cat: "Inference", name: "Highspeed variant", t: "Kimi K3.1 Pro Highspeed runs 2–3× faster on Moonshot's API. Moonshot has not said whether it is a different model or the same weights served differently.", s: "B" },
       { cat: "Inference", name: "Third-party DSpark draft", t: "No drafter ships with the weights. vLLM's recipe runs a 5-layer DSpark draft from Inferact with 5 speculative tokens, and one 8-GPU B300 or MI355X node holds the checkpoint.", s: "X" },
       { cat: "Optimization & stability", name: "Inherited from K3", t: "Per-head Muon, Quantile Balancing, SiTU-GLU soft caps and MXFP4 QAT all come from K3's training. The K3.1 config keeps the matching settings (SiTU betas, noaux_tc routing, the MXFP4 scheme).", s: "R+C" },
     ],
     pretrain: {
-      headline: "No new pretraining: K3.1 Pro starts from Kimi K3. The blog refers to a mid-training stage but gives no details.",
+      headline: "No new pretraining: K3.1 Pro starts from Kimi K3. It then has its own mid-training stage, with cyber data removed, before RL; the blog gives no other details.",
       stats: [
         { k: "Base", v: "Kimi K3 (post-trained version)", s: "B" },
         { k: "Tokens (K3 base)", v: "Not disclosed", s: "R" },
@@ -6490,8 +6492,8 @@ window.BENCHMARKS = [
       dsv4flash: { v: 1.8, n: "-0731" },
       dsv4pro: { v: 5.4, n: "-0813" },
       mimo26: { v: 17.8 }, dsv41: { v: 15.3 } } },
-  { cat: "Tool use & agents", name: "Agents' Last Exam", unit: "%", scores: {
-      kimik31: { v: 43.2, n: "v1.1 all 122 tasks, Kimi Code; CLI subset 44.2" },
+  { cat: "Tool use & agents", name: "Agents' Last Exam", unit: "%", cmp: false, scores: {
+      kimik31: { v: 43.2, n: "v1.1, all 122 tasks, Kimi Code; runs that bypass the task get zero; CLI subset 44.2" },
       hy4: { v: 22.8, n: "ALE-CLI, Claude Code" },
       mimo26f: { v: 27.6 },
       step5: { v: 29.5, n: "ALE-CLI" },
@@ -6527,7 +6529,7 @@ window.BENCHMARKS = [
       qwen38: { v: 73.5, n: "dominance, Claude Code, 2026-08-03" },
       glm53: { v: 78.1, n: "dominance, run by Proximal, 2026-08-14" },
       kimik3: { v: 81.2, n: "dominance score, 2026-07-16" }, } },
-  { cat: "Agentic coding", name: "SWE-Marathon", unit: "%", scores: {
+  { cat: "Agentic coding", name: "SWE-Marathon", unit: "%", cmp: false, scores: {
       kimik31: { v: 51.7, n: "v1.1, Claude Code harness" },
       glm53: { v: 42.5, n: "v1.1, Claude Code; Z.ai lists Kimi K3 at 48.1 on v1.1" },
       kimik3: { v: 42.0, n: "H20-calibrated branch, Claude Code harness" }, } },
@@ -6539,7 +6541,7 @@ window.BENCHMARKS = [
       step5: { v: 37.8 },
       minimaxm3: { v: 27.7, n: "archipelago ReAct, Sonnet 4.6 judge" },
       kimik3: { v: 41.0, n: "Mercor leaderboard" }, } },
-  { cat: "Agentic coding", name: "PostTrainBench", unit: "%", scores: {
+  { cat: "Agentic coding", name: "PostTrainBench", unit: "%", cmp: false, scores: {
       kimik31: { v: 36.5, n: "v1.2, Claude Code on H20; DeepSeek-V4.1-Flash-1017 as judge" },
       hy4: { v: 35.6, n: "v1.1" },
       minimaxm31f: { v: 39.3, n: "v1.1, Claude Code, 512K" },
@@ -6579,8 +6581,8 @@ window.BENCHMARKS = [
       ml4: { v: 1.765, n: "mean score on a 0–2 scale; preview 1.691" }, } },
   { cat: "Tool use & agents", name: "Vals Finance Agent v2.1", unit: "%", scores: {
       ml4: { v: 61.72, n: "Vals" }, } },
-  { cat: "Tool use & agents", name: "Harvey Legal Agent (HLAB v1.1)", unit: "%", scores: {
-      kimik31: { v: 23.7, n: "all-pass rate, 1,251 public tasks, AA Stirrup harness" },
+  { cat: "Tool use & agents", name: "Harvey Legal Agent (HLAB v1.1)", unit: "%", cmp: false, scores: {
+      kimik31: { v: 23.7, n: "all-pass rate, 1,251 public tasks, AA Stirrup harness; version not stated" },
       ml4: { v: 15.83, n: "Vals" }, } },
   { cat: "Agentic coding", name: "Terminal-Bench-Science 0.1", unit: "%", scores: {
       kimik31: { v: 38.1, n: "Claude Code harness" }, } },
@@ -6612,7 +6614,7 @@ window.BASE_BENCHMARKS = {
 
 /* Safety suites differ per lab, so they are listed, not tabulated. */
 window.SAFETY = [
-  { id: "kimik31", t: "No safety suite reported. For the open release Moonshot removed cyber data from mid-training and the RL environments: xdev-bench-hard (pass@3) fell from 90.5% for the unfiltered checkpoint to 81.0%. ExploitBench 74.7 and ExploitGym 20.7, which Moonshot says stay behind proprietary frontier models released at least three months earlier.", s: "B" },
+  { id: "kimik31", t: "No safety suite reported. For the open release Moonshot removed cyber data from mid-training and the RL environments: xdev-bench-hard (pass@3) fell from 90.5% for the unfiltered checkpoint to 81.0%. Moonshot says its cyber capability stays behind proprietary frontier models that have been public for at least three months (ExploitBench 74.7, ExploitGym 20.7).", s: "B" },
   { id: "dsv41", t: "No aggregate safety score in the report. DeepSeek flags its open-source-leading cyber-security results (CyberGym 88.1, SEC-Bench Pro 62.8) as dual-use, and reports exploit-seeking behaviour during evaluation, such as decompiling Ubuntu packages in CyberGym.", s: "R" },
   { id: "glimmer", t: "CIMemories violation 26.4% (lower is better) at 64.8% coverage; Siren AgentDojo attack success 28.4% at 94.2% utility; PrivacyLens leakage 49.2% (high reasoning).", s: "R" },
   { id: "inkling", t: "FORTRESS adversarial 78.0% and benign 95.9% (higher is better), StrongREJECT 98.6%. Thinking Machines concluded Inkling gives no material uplift beyond existing open weights.", s: "B" },
@@ -7070,7 +7072,7 @@ window.DIAGRAMS = {
 
   kimik31: {
     s: "R+C+X",
-    caption: "One Kimi K3.1 Pro layer, repeated 93 times. It is Kimi K3's layer with one change: the fourth layer of each block (and the last) is now Gated MLA with DeepSeek Sparse Attention. Its own indexer picks 2,048 earlier tokens per query, and MLA attends only to those. The KDA layers, AttnRes and the latent MoE are unchanged. Built from config.json and the weight index; the repo ships no modeling code, so the K3 code and the vLLM indexer fill the rest.",
+    caption: "One Kimi K3.1 Pro layer, repeated 93 times. It is Kimi K3's layer with one change: the fourth layer of each block (and the last) is now Gated MLA with DeepSeek Sparse Attention. Its own indexer picks 2,048 earlier tokens per query, and MLA attends only to those. The KDA layers, AttnRes and the latent MoE keep K3's design, though every weight was retrained. Built from config.json and the weight index; the repo ships no modeling code, so the K3 code and the vLLM indexer fill the rest.",
     inputs: [
       { row: [
         { l: "Token embedding", s: "163,840 × 7168" },
