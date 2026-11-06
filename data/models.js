@@ -4889,6 +4889,179 @@ window.MODELS = [
 
   /* ------------------------------------------------------------------ */
   {
+    id: "ripple",
+    glance: {"date": "2026-11-04", "attn": "SWA 1024 · 4:1, global NoPE", "moe": "Dense", "tokens": "12T", "report": "Blog + card", "sig": "Thin-and-deep 65B dense with value residuals and gated attention, trained by a 5-person team"},
+    benchSource: { s: "B+C", t: "Model card table (tier 3) at max effort in BF16, with OpenCode as the harness unless noted; Terminal-Bench 2.1 from the launch blog (tier 2), which gives the only score in its text. The card also lists MMLU 89.6, MMLU-Pro 84.2, AIME 2024 97.1, AIME 2025 98.3 and HMMT Feb 2026 90.5, which have no rows here." },
+    name: "Ripple-65B Preview",
+    org: "Ricursive Intelligence",
+    released: "2026-11-04 (instruct BF16 and NVFP4, base, DFlash2 drafter; base repo created 2026-10-14). No technical report: the card's citation is a misc entry with no paper",
+    license: "Apache 2.0",
+    params: { total: "64.8B", active: "64.8B" },
+    contextShort: "1M",
+    modalitiesShort: "Text → text",
+    tagline:
+      "First model from Ricursive Intelligence, a chip-design AI lab: a 65B dense transformer pretrained from scratch on 12T tokens, starting from the Olmo 3 recipe and ladder. It is thin and deep (d_model 5,120, 80 layers) with twice as many query channels as d_model, four 1,024-token sliding-window layers per NoPE global layer, sigmoid-gated attention, Gemma 3n-style pre+post norms, clamped SwiGLU and value residuals that mix the token embedding into every layer's values. It scores 80.5 on Terminal-Bench 2.1.",
+    disclosure: { arch: "detailed", pretrain: "partial", sft: "partial", rl: "partial" },
+    docs: [
+      { kind: "B", label: "Introducing Ripple-65B Preview (Ricursive blog, 2026-11-04)", url: "https://www.ricursive.com/ripple" },
+      { kind: "C", label: "HF model card: Ripple-65B-Preview", url: "https://huggingface.co/ricursiveAI/Ripple-65B-Preview" },
+      { kind: "C", label: "config.json", url: "https://huggingface.co/ricursiveAI/Ripple-65B-Preview/blob/main/config.json" },
+      { kind: "C", label: "modeling_ricursive.py (custom code; no transformers implementation)", url: "https://huggingface.co/ricursiveAI/Ripple-65B-Preview/blob/main/modeling_ricursive.py" },
+      { kind: "C", label: "configuration_ricursive.py", url: "https://huggingface.co/ricursiveAI/Ripple-65B-Preview/blob/main/configuration_ricursive.py" },
+      { kind: "C", label: "model.safetensors.index.json (weights read for the value-residual gates)", url: "https://huggingface.co/ricursiveAI/Ripple-65B-Preview/blob/main/model.safetensors.index.json" },
+      { kind: "C", label: "HF model card: Ripple-65B-Base-Preview", url: "https://huggingface.co/ricursiveAI/Ripple-65B-Base-Preview" },
+      { kind: "C", label: "HF model card: Ripple-65B-Preview-NVFP4", url: "https://huggingface.co/ricursiveAI/Ripple-65B-Preview-NVFP4" },
+      { kind: "C", label: "HF model card and config: Ripple-65B-Preview-DFlash2 drafter", url: "https://huggingface.co/ricursiveAI/Ripple-65B-Preview-DFlash2" },
+      { kind: "C", label: "inference/server (SGLang serving on 2 × B200)", url: "https://huggingface.co/ricursiveAI/Ripple-65B-Preview/tree/main/inference/server" },
+      { kind: "C", label: "LICENSE (Apache 2.0)", url: "https://huggingface.co/ricursiveAI/Ripple-65B-Preview/blob/main/LICENSE" },
+      { kind: "X", label: "Elie Bakouch (Prime Intellect) on X, with an infographic, 2026-11-04", url: "https://x.com/eliebakouch/status/2118111893160435742" },
+    ],
+    layers: patternFromRules(80, (i) => i % 5 === 4, () => true),
+    layersNote: "80 dense layers, 64 sliding-window + 16 global (layer_types in config.json): every 5th layer is global, starting at layer 4, so the last layer is global.",
+    kv: { globalLayers: 16, swaLayers: 64, window: 1024, kvHeads: 8, headDim: 128, stateBytes: 0, stateLabel: "", perTokenBytes: 16 * 2 * 8 * 128 * 2, fixedBytes: 64 * 2 * 8 * 128 * 2 * 1024, perTokLabel: "global KV per token, BF16 (16 layers)", fixedLabel: "SWA ring, BF16 (64 layers × 1,024)", note: "Global layers keep 8 KV heads × 128 for every token: 64 KiB per token, or 64 GiB (69 GB) at 1M tokens. The 64 SWA layers hold only the last 1,024 tokens, a fixed 256 MiB." },
+    specs: {
+      params: { v: "64,782,689,360 (BF16 safetensors); card and blog: 65B", s: "B+C" },
+      sparsity: { v: "Dense (100%)", s: "D" },
+      layers: { v: "80, all dense ('thin-and-deep')", s: "B+C" },
+      hidden: { v: "5120", s: "B+C" },
+      vocab: { v: "100,352 (padded; token ids match the OLMo 2 cl100k-based tokenizer: bos 100257, pad 100277)", s: "C" },
+      context: { v: "1Mi (1,048,576) supported; max_position_embeddings 2,097,152, and both long-context stages train at 2M", s: "B+C" },
+      mixer: { v: "Attention only: sliding window (1,024) and global", s: "B+C" },
+      heads: { v: "80 / 8 / 128. Query width 10,240 = 2 × d_model ('overprovisioned' heads); GQA 10:1", s: "B+C" },
+      pattern: { v: "4 : 1 — window 1,024; 64 SWA + 16 global (global at 4, 9, … 79)", s: "C" },
+      position: { v: "RoPE θ = 10k on SWA layers only, over the full 128-dim head and computed in FP32; global layers are NoPE. No rope_scaling", s: "B+C" },
+      attnExtras: { v: "Per-head QK RMSNorm. Sigmoid output gate per channel: g_proj (5,120 → 10,240) reads the normed input, sigmoid in FP32, multiplied before o_proj. Value residual: v_proj reads lerp(embedding, x, σ(λ)) with one learned λ per layer. Default 1/√128 scale; no sinks", s: "B+C" },
+      ssm: { v: "—", s: "" },
+      moe: { v: "—", s: "" },
+      shared: { v: "—", s: "" },
+      expertDim: { v: "—", s: "" },
+      latent: { v: "No", s: "" },
+      routing: { v: "—", s: "" },
+      dense: { v: "80 (SwiGLU, width 40,960 = 8 × d_model)", s: "C" },
+      act: { v: "SwiGLU with clamping: gate capped at +20 (no lower bound), up clipped to ±20, then down(SiLU(gate) · up)", s: "B+C" },
+      norm: { v: "'PeriNorm' (Gemma 3n-style): RMSNorm before and after both attention and FFN, x + post(f(pre(x))). RMSNorm computes in FP32 and applies its weight after casting back; eps 1e-6", s: "B+C" },
+      head: { v: "Untied embedding and LM head; embeddings × √5120 (embed_scale 71.55); no final logit softcap", s: "C" },
+      mtp: { v: "None in the model. Separate DFlash2 drafter (4.04B, 5 layers) drafts 16-token blocks from target layers 1, 20, 39, 58, 77", s: "C" },
+      kv: { v: "64 KiB per token from global layers (16 × 2 × 8 × 128 × 2 B)", s: "D" },
+      state: { v: "SWA ring 256 MiB (64 layers × 1,024 tokens × 4 KiB)", s: "D" },
+      precision: { v: "BF16, trained without quantization; NVFP4 checkpoint (36 GB of weights per the X infographic) for DGX Spark", s: "B+C+X" },
+      modalities: { v: "Text only", s: "C" },
+      encoders: { v: "—", s: "" },
+    },
+    paramBreakdown: {
+      s: "C+D",
+      note: "From config.json shapes, which sum exactly to the 64,782,689,360 parameters in the weight files. Billions of parameters.",
+      parts: [
+        { label: "FFN (80 × 629.1M)", b: 50.33 },
+        { label: "Attention incl. output gate (80 × 167.8M)", b: 13.42 },
+        { label: "Embedding", b: 0.51 },
+        { label: "LM head", b: 0.51 },
+      ],
+    },
+    highlights: [
+      { t: "<b>Value residuals.</b> Each layer's value projection reads a learned mix of its normed input and the scaled token embedding. In the released weights layer 6 takes its values entirely from the embedding, layers 11–39 almost ignore it, and many layers from 40 on take 40–93% from it.", s: "C+D" },
+      { t: "<b>More heads, smaller windows.</b> 80 query heads × 128 give a query width twice d_model. To pay for them, Ricursive raised the SWA share to 4 of every 5 layers and cut the window to 1,024.", s: "B+C" },
+      { t: "<b>Global NoPE.</b> Only the sliding-window layers use RoPE; the 16 global layers have no positional encoding, with no rope scaling for the 1M context.", s: "B+C" },
+      { t: "<b>Dense on purpose.</b> Ricursive chose a dense model to keep training simple: 40% MFU with simple sharding, no custom kernels and BF16 throughout, by a team that grew from 1 to 5 people. Total R&D cost was $32M.", s: "B" },
+      { t: "<b>Steep RL climb.</b> Terminal-Bench 2.1 reached 80.52 after 1.4M RL rollouts, which Ricursive puts at about 70× fewer than Reflection Beam's.", s: "B" },
+    ],
+    refs: {
+      arch: [
+        { label: "Blog: A Co-Designed Model Architecture", url: "https://www.ricursive.com/ripple", s: "B" },
+        { label: "Model card", url: "https://huggingface.co/ricursiveAI/Ripple-65B-Preview", s: "C" },
+        { label: "config.json", url: "https://huggingface.co/ricursiveAI/Ripple-65B-Preview/blob/main/config.json", s: "C" },
+        { label: "modeling_ricursive.py", url: "https://huggingface.co/ricursiveAI/Ripple-65B-Preview/blob/main/modeling_ricursive.py", s: "C" },
+      ],
+      pretrain: [
+        { label: "Blog: Careful Model Laddering", url: "https://www.ricursive.com/ripple", s: "B" },
+        { label: "Model card: stage table", url: "https://huggingface.co/ricursiveAI/Ripple-65B-Preview", s: "C" },
+        { label: "Base model card", url: "https://huggingface.co/ricursiveAI/Ripple-65B-Base-Preview", s: "C" },
+      ],
+      sft: [
+        { label: "Model card: stage table", url: "https://huggingface.co/ricursiveAI/Ripple-65B-Preview", s: "C" },
+        { label: "chat_template.jinja", url: "https://huggingface.co/ricursiveAI/Ripple-65B-Preview/blob/main/chat_template.jinja", s: "C" },
+      ],
+      rl: [
+        { label: "Blog: Steep Ascent Reinforcement Learning", url: "https://www.ricursive.com/ripple", s: "B" },
+        { label: "Model card: stage table", url: "https://huggingface.co/ricursiveAI/Ripple-65B-Preview", s: "C" },
+      ],
+      tricks: [
+        { label: "Blog", url: "https://www.ricursive.com/ripple", s: "B" },
+        { label: "modeling_ricursive.py", url: "https://huggingface.co/ricursiveAI/Ripple-65B-Preview/blob/main/modeling_ricursive.py", s: "C" },
+        { label: "Elie Bakouch's infographic", url: "https://x.com/eliebakouch/status/2118111893160435742/photo/1", s: "X" },
+      ],
+      bench: [
+        { label: "Blog: Terminal-Bench 2.1", url: "https://www.ricursive.com/ripple", s: "B" },
+        { label: "Model card: Instruct and Base benchmark tables", url: "https://huggingface.co/ricursiveAI/Ripple-65B-Preview", s: "C" },
+      ],
+    },
+    tricks: [
+      { cat: "Architecture", name: "Value residuals from the embedding", t: "v_proj reads σ(λ)·x + (1 − σ(λ))·embedding, where the embedding is already scaled by √5120 and λ starts at 0 (an even mix). Added at ladder v1.6. The trained λ values span −11.9 (layer 6, all embedding) to +14.7 (layer 62, none).", s: "B+C+D" },
+      { cat: "Architecture", name: "Sigmoid gated attention", t: "Each of the 10,240 attention output channels is scaled by a sigmoid of a projection of the layer's normed input before o_proj. The gate is computed in FP32. Added at ladder v1.3.", s: "B+C" },
+      { cat: "Optimization & stability", name: "Pre + post norm", t: "Switching from Olmo 3's post-norm to RMSNorm before and after each sublayer was neutral at small scale and helped from 4B up (ladder v1.2). The card calls the result a Gemma 3n-like architecture chosen for training stability.", s: "B+C" },
+      { cat: "Numerics", name: "FFN activation clipping", t: "The SwiGLU gate is capped at +20 and the up projection clipped to ±20 before they are multiplied, which bounds the FFN's largest activations.", s: "B+C" },
+      { cat: "Long context", name: "Global NoPE with a final LR cooldown", t: "Ladder v1.5 removed RoPE from global layers and added a learning-rate cooldown to zero at the end of pretraining.", s: "B" },
+      { cat: "Scaling", name: "StepFun scaling laws and a smooth ladder", t: "Ladder v1.0 set batch size and learning rate with StepFun's scaling laws; v1.1 scaled width and depth smoothly across ladder sizes. The hero run ramped batch from 1,408 to 3,072 sequences of 8K.", s: "B+C" },
+      { cat: "Scaling", name: "Rejected: 2-stream mHC", t: "Manifold-constrained hyper-connections (ladder v1.4) helped at small scale but not at 4B, so they were dropped.", s: "B" },
+      { cat: "Data", name: "Code-heavy own data", t: "The final ladder step swapped in Ricursive's own pretraining set with much more code. All steps together cut the compute needed for a given code loss (dolma_stack) by up to 16× at 4B versus the Olmo 3 ladder; the card says up to 55× for the full run. The X infographic reads the data swap alone as 4.5–5.4× at each size.", s: "B+C+X" },
+      { cat: "Data", name: "Synthetic data kept out of pretraining", t: "Pretraining uses mostly natural data with minimal synthetic data. Synthetic data goes into mid-training so its recipe could change without blocking pretraining. No post-training data was bought.", s: "B+C" },
+      { cat: "RL", name: "Tuned RL tasks", t: "Mixed RL uses truncated importance sampling, score centering and a linear length penalty on long-horizon synthetic environments. Harder tasks were added as the model improved.", s: "B" },
+      { cat: "Inference", name: "DFlash2 block drafter", t: "A 4.04B, 5-layer drafter (4 SWA layers with a 4,096 window, then a NoPE global layer) proposes 16 tokens at once, using dynamic convolutions and a top-32 candidate selector. It reads hidden states from 5 target layers and reuses Ripple's embedding and head. Served through SGLang's DFLASH mode; 250 tok/s on 2 × B200 at batch 8.", s: "B+C" },
+    ],
+    pretrain: {
+      headline: "Pretrained from scratch on 12T text tokens, mostly English and code, at 8K sequence length. The released base checkpoint is pretrain-only.",
+      stats: [
+        { k: "Tokens", v: "12T, text only, predominantly English and code", s: "B+C" },
+        { k: "Steps", v: "877,500 at 8K; batch 1,408 → 3,072 sequences", s: "C" },
+        { k: "Efficiency", v: "40% MFU in pre- and post-training; BF16, simple sharding, no custom kernels", s: "B+C" },
+        { k: "Cost", v: "$32M total R&D, including ladder runs, evals and data generation. The X infographic estimates the final pretraining run at about $9M", s: "B+X" },
+        { k: "Starting point", v: "Olmo 3 model ladder, then six ladder versions (v1.0–v1.6, with v1.4 rejected) and new data", s: "B" },
+      ],
+      stages: [
+        { name: "Pretraining, 8K", tokens: "12T", tokensB: 12000, detail: "877,500 steps, batch ramped 1,408 → 3,072. Mostly natural data, minimal synthetic.", s: "B+C" },
+        { name: "Mid-training, 64K", tokens: "200B", tokensB: 200, detail: "8,000 steps at batch 384. Where most of the synthetic data goes.", s: "C" },
+        { name: "Long context, 2M", tokens: "6.5B", tokensB: 6.5, detail: "389 steps at batch 8.", s: "C" },
+      ],
+      mixes: [],
+      notes: [
+        { t: "Each stage's steps × batch × sequence length matches its token count (for example 8,000 × 384 × 65,536 = 201B).", s: "D" },
+        { t: "Base model on Ricursive's Olmes fork: MMLU 83.7, MMLU-Pro 61.5, GPQA-Diamond 38.4, SimpleQA-Verified 10.1, HumanEval 70.9, MBPP 81.5, GSM8K 88.5, MATH 59.1. Ricursive says it is close to DeepSeek V3.1 and V4 Flash on reasoning, math and code.", s: "C" },
+      ],
+    },
+    sft: {
+      headline: "SFT at 128K and then long-context SFT at 2M, with Ricursive's own synthetic data pipelines, quality filters and coverage metrics. The card calls the preview's post-training 'relatively light', focused on agentic coding.",
+      stats: [
+        { k: "Data", v: "Own synthetic pipelines; none bought", s: "B" },
+        { k: "Template", v: "ChatML with <think> reasoning and <tool_call> JSON; tool results go in user turns", s: "C" },
+      ],
+      stages: [
+        { name: "SFT, 128K", tokens: "183B", tokensB: 183, detail: "7,274 steps at batch 192.", s: "C" },
+        { name: "Long-context SFT, 2M", tokens: "13.5B", tokensB: 13.5, detail: "802 steps at batch 8.", s: "C" },
+      ],
+      mixes: [],
+      notes: [],
+    },
+    rl: {
+      headline: "Mixed-domain RL for 700 steps at 128K, 1.4M rollouts in total. Terminal-Bench 2.1 rose from the SFT checkpoint to 80.5.",
+      stats: [
+        { k: "Steps", v: "700 at 128K, batch 2,048", s: "C" },
+        { k: "Rollouts", v: "1.4M (700 × 2,048 = 1.43M)", s: "B+D" },
+        { k: "Gain", v: "+7.9 on Terminal-Bench 2.1 over SFT, per the X infographic", s: "X" },
+      ],
+      methods: [
+        { name: "Truncated importance sampling", t: "Named in the blog without details. In common use it reweights tokens by the trainer-to-sampler probability ratio, capped, to correct for the mismatch between the two.", s: "B" },
+        { name: "Score centering", t: "Named in the blog without details.", s: "B" },
+        { name: "Linear length penalty", t: "Named in the blog without details.", s: "B" },
+        { name: "Long-horizon synthetic environments", t: "Tasks are tuned to the model's level, and harder ones were added as it improved.", s: "B" },
+      ],
+      notes: [
+        { t: "The blog names the methods but gives no hyperparameters. It credits open-source work from Ai2 (Olmo), Prime Intellect, RadixArk and NVIDIA.", s: "B" },
+      ],
+    },
+  },
+
+  /* ------------------------------------------------------------------ */
+  {
     id: "lfm3",
     glance: {"date": "2026-10-27", "attn": "Conv + SWA 256 + global", "moe": "Dense", "tokens": "22T", "report": "Blog + card", "sig": "1.7B tri-hybrid edge agent: short convs, sliding and global attention"},
     benchSource: { s: "B", t: "Liquid AI LFM3 launch blog (tier 2; the model card links it). Agentic coding uses the OpenCode harness. AA-Omniscience figures are on the public subset." },
@@ -5182,6 +5355,7 @@ window.MODELS = [
  */
 window.BENCHMARKS = [
   { cat: "Agentic coding", name: "SWE-bench Verified", unit: "%", scores: {
+      ripple: { v: 76.5, n: "OpenCode" },
       lfm3: { v: 43.4, n: "OpenCode" },
       motif3: { v: 76.2 },
       minimaxm3: { v: 80.5, n: "Claude Code, 4-run mean" },
@@ -5205,6 +5379,7 @@ window.BENCHMARKS = [
       ultra3: { v: 67.7 },
       beam: { v: 78.0, n: "card: 78.3" }, super: { v: 67.72, n: "OpenCode" }, lightning: { v: 37.13 } } },
   { cat: "Agentic coding", name: "SWE-bench Pro", unit: "%", cmp: false, scores: {
+      ripple: { v: 61.42, n: "v1.0, OpenCode; 79.1 on v2.0 Hard with Terminus 2" },
       laguna: { v: 59.4, n: "public set, pool harness, avg@4" },
       hy4: { v: 65.7, n: "swe-agent" },
       qwen3827: { v: 61.7, n: "Claude Code on a corrected task set" },
@@ -5219,6 +5394,7 @@ window.BENCHMARKS = [
       beam: { v: 65.5, n: "“v1”; 77.2 on v2-Hard; card: 66.1 / 76.5" },
       super: { v: 51.78, n: "public set, OpenCode" } } },
   { cat: "Agentic coding", name: "Terminal-Bench 2.1", unit: "%", scores: {
+      ripple: { v: 80.52, n: "blog; card 80.5, also 80.5 with Terminus 2 at 128K" },
       ml4: { v: 90.2, n: "report Table 3" },
       lfm3: { v: 12.92, n: "OpenCode" },
       laguna: { v: 70.2, n: "pool harness, avg@4, 5 h" },
@@ -5245,6 +5421,7 @@ window.BENCHMARKS = [
       super: { v: 60.67, n: "Terminus 2, 8 runs, 3 h timeout" },
       lightning: { v: 24.44 } } },
   { cat: "Agentic coding", name: "DeepSWE v1.1", unit: "%", cmp: false, scores: {
+      ripple: { v: 44.3, n: "Terminus 2" },
       kimik31: { v: 75.5, n: "Claude Code harness" },
       ml4: { v: 65.2, n: "preview post: 61.7" },
       laguna: { v: 40.4, n: "pool harness (not mini-swe-agent), avg@3, 6 h" },
@@ -5285,6 +5462,7 @@ window.BENCHMARKS = [
       beam: { v: 88.3, n: "model card only" }, super: { v: 88.22, n: "v6, 454 problems" } } },
 
   { cat: "Tool use & agents", name: "MCP-Atlas", unit: "%", scores: {
+      ripple: { v: 71.67 },
       lfm3: { v: 32.57 },
       hy4: { v: 83.7, n: "public set, April 2026 methodology" },
       step5: { v: 85.6, n: "version not stated; StepFun lists GLM-5.3 at 86.8" },
@@ -5297,6 +5475,7 @@ window.BENCHMARKS = [
       glimmer: { v: 75.5, n: "public 500 tasks, 4 runs" },
       muse: { v: 89.2, n: "Scale AI leaderboard harness" }, beam: { v: 78.7, n: "card: 80.8" } } },
   { cat: "Tool use & agents", name: "τ³-Bench Banking", unit: "%", scores: {
+      ripple: { v: 31.27 },
       motif3: { v: 35.3 },
       step5: { v: 42.5 },
       inklingsm: { v: 15.5, n: "Artificial Analysis" },
@@ -5374,6 +5553,7 @@ window.BENCHMARKS = [
       mimo26: { v: 62.0 },
       kimik3: { v: 54.3, n: "official leaderboard" }, muse: { v: 61.8 } } },
   { cat: "Tool use & agents", name: "AutomationBench (public)", unit: "%", cmp: false, scores: {
+      ripple: { v: 36.4, n: "public set" },
       kimik31: { v: 73.3, n: "AutomationBench-AA, Artificial Analysis" },
       ml4: { v: 57.8, n: "Artificial Analysis; preview post: 59.9" },
       lfm3: { v: 41.29 },
@@ -5394,6 +5574,7 @@ window.BENCHMARKS = [
       glimmer: { v: 74.6, n: "internal, 4 runs" }, beam: { v: 80.1, n: "with context management; card: 80.5" } } },
 
   { cat: "Reasoning & knowledge", name: "GPQA Diamond", unit: "%", scores: {
+      ripple: { v: 85.2 },
       kimik31: { v: 94.2 },
       lfm3: { v: 63.37 },
       olmo3: { v: 57.5, n: "Olmo 3.1 Think 32B; Ai2 suite" },
@@ -5449,12 +5630,14 @@ window.BENCHMARKS = [
       kimik31: { v: 39.4 },
       ml4: { v: 17.3, n: "Artificial Analysis" }, muse: { v: 26.1, n: "Scale AI" } } },
   { cat: "Reasoning & knowledge", name: "AIME 2026", unit: "%", scores: {
+      ripple: { v: 95.0 },
       lfm25: { v: 50.0 },
       inklingsm: { v: 95.5 },
       gemma4: { v: 89.2, n: "no tools" },
       inkling: { v: 97.1 },
       glimmer: { v: 94.7, n: "10 runs" }, beam: { v: 97.8, n: "card: 97.7" } } },
   { cat: "Reasoning & knowledge", name: "SciCode", unit: "%", scores: {
+      ripple: { v: 39.4, n: "Inspect AI" },
       lfm3: { v: 28.47 },
       motif3: { v: 40.6 },
       step5: { v: 58.9 },
@@ -5493,6 +5676,7 @@ window.BENCHMARKS = [
       super: { v: 26.2, n: "non-hallucination 69.96" }, lightning: { v: 17.47, n: "non-hallucination 68.88" } } },
 
   { cat: "Long context & instructions", name: "AA-LCR", unit: "%", scores: {
+      ripple: { v: 75.0 },
       lfm3: { v: 52.83 },
       motif3: { v: 72.3 },
       step5: { v: 88.3, n: "v1.1" },
@@ -5507,6 +5691,7 @@ window.BENCHMARKS = [
   { cat: "Long context & instructions", name: "RULER (1M)", unit: "%", scores: {
       ultra3: { v: 94.7 }, lightning: { v: 91.52 } } },
   { cat: "Long context & instructions", name: "IFBench", unit: "%", cmp: false, scores: {
+      ripple: { v: 79.2 },
       lfm3: { v: 73.03 },
       olmo3: { v: 68.1, n: "Olmo 3.1 Think 32B" },
       lfm25: { v: 56.5 },
@@ -5775,6 +5960,7 @@ window.BASE_BENCHMARKS = {
 
 /* Safety suites differ per lab, so they are listed, not tabulated. */
 window.SAFETY = [
+  { id: "ripple", t: "FORTRESS adversarial 83.8% and benign 95.5% (higher is better), StrongREJECT 97.5%, from the model card at max effort in BF16.", s: "C" },
   { id: "kimik31", t: "No safety suite reported. For the open release Moonshot removed cyber data from mid-training and the RL environments: xdev-bench-hard (pass@3) fell from 90.5% for the unfiltered checkpoint to 81.0%. Moonshot says its cyber capability stays behind proprietary frontier models that have been public for at least three months (ExploitBench 74.7, ExploitGym 20.7).", s: "B" },
   { id: "dsv41", t: "No aggregate safety score in the report. DeepSeek flags its open-source-leading cyber-security results (CyberGym 88.1, SEC-Bench Pro 62.8) as dual-use, and reports exploit-seeking behaviour during evaluation, such as decompiling Ubuntu packages in CyberGym.", s: "R" },
   { id: "glimmer", t: "CIMemories violation 26.4% (lower is better) at 64.8% coverage; Siren AgentDojo attack success 28.4% at 94.2% utility; PrivacyLens leakage 49.2% (high reasoning).", s: "R" },

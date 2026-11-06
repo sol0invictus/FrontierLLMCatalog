@@ -1564,6 +1564,54 @@ window.DIAGRAMS = {
   },
 
 
+  ripple: {
+    s: "B+C",
+    caption: "One Ripple-65B layer, repeated 80 times. Every fifth layer is global and has no positional encoding; the rest attend over 1,024 tokens with RoPE. Values are projected from a learned mix of the layer input and the token embedding, the attention output is gated per channel, and both sublayers are normed before and after.",
+    inputs: [{ l: "Token embedding × √5120", s: "100,352 × 5120, untied; also feeds V", n: true }],
+    block: {
+      title: "Decoder layer",
+      repeat: "× 80",
+      stream: "residual stream",
+      note: "Global at 4, 9, … 79; sliding window 1,024 elsewhere",
+      branches: [
+        {
+          title: "Attention (16 global + 64 SWA)",
+          steps: [
+            { l: "RMSNorm" },
+            { row: [
+              { l: "Q, K projections", s: "80 Q / 8 KV, d = 128" },
+              { l: "V from x + embedding", s: "σ(λ)·x + (1 − σ(λ))·emb", n: true },
+            ] },
+            { l: "QK-Norm", s: "per-head RMSNorm", n: true },
+            { l: "RoPE θ 10k on SWA only", s: "global layers: NoPE", n: true },
+            { l: "Attention", s: "window 1,024, or full" },
+            { l: "× σ(gate) per channel", s: "gate = W_g · normed x, FP32", n: true },
+            { l: "Output projection", s: "10,240 → 5120" },
+            { l: "Post-norm", s: "RMSNorm (pre + post)", n: true },
+          ],
+          merge: { l: "+ residual" },
+        },
+        {
+          title: "Dense FFN",
+          steps: [
+            { l: "RMSNorm" },
+            { l: "SwiGLU, clamped at 20", s: "5120 → 40,960 → 5120", n: true },
+            { l: "Post-norm", s: "RMSNorm (pre + post)", n: true },
+          ],
+          merge: { l: "+ residual" },
+        },
+      ],
+    },
+    outputs: [
+      { l: "Final RMSNorm" },
+      { row: [
+        { l: "LM head", s: "untied, no softcap" },
+        { l: "DFlash2 drafter", s: "separate 4B, 16-token blocks", n: true },
+      ] },
+    ],
+  },
+
+
   lfm3: {
     s: "B+C",
     caption: "One LFM3-1.7B layer, repeated 24 times with sandwich norms. Over half the layers mix tokens with a gated 7-tap convolution; the rest use attention, alternating 256-token sliding windows and global layers whose heads rotate only half their dims. Every attention head's output passes a sigmoid gate.",
