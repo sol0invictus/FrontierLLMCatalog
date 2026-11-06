@@ -5764,7 +5764,7 @@ window.MODELS = [
     ],
     layers: patternFromRules(80, (i) => i % 5 === 4, () => true),
     layersNote: "80 dense layers, 64 sliding-window + 16 global (layer_types in config.json): every 5th layer is global, starting at layer 4, so the last layer is global.",
-    kv: { globalLayers: 16, swaLayers: 64, window: 1024, kvHeads: 8, headDim: 128, stateBytes: 0, stateLabel: "", perTokenBytes: 16 * 2 * 8 * 128 * 2, fixedBytes: 64 * 2 * 8 * 128 * 2 * 1024, perTokLabel: "global KV per token, BF16 (16 layers)", fixedLabel: "SWA ring, BF16 (64 layers × 1,024)", note: "Global layers keep 8 KV heads × 128 for every token: 64 KiB per token, or 64 GiB (69 GB) at 1M tokens. The 64 SWA layers hold only the last 1,024 tokens, a fixed 256 MiB." },
+    kv: { globalLayers: 16, swaLayers: 64, window: 1024, kvHeads: 8, headDim: 128, stateBytes: 0, stateLabel: "", perTokenBytes: 16 * 2 * 8 * 128 * 2, fixedBytes: 64 * 2 * 8 * 128 * 2 * 1024, perTokLabel: "global KV per token, BF16 (16 layers)", fixedLabel: "SWA ring, BF16 (64 layers × 1,024)", note: "Global layers keep 8 KV heads × 128 for every token: 64 KiB per token, or 64 GiB (69 GB) at 1M tokens, the same as Muse Spark Open and more than Beam's 39 GB. The 64 SWA layers hold only the last 1,024 tokens, a fixed 256 MiB." },
     specs: {
       params: { v: "64,782,689,360 (BF16 safetensors); card and blog: 65B", s: "B+C" },
       sparsity: { v: "Dense (100%)", s: "D" },
@@ -5790,7 +5790,7 @@ window.MODELS = [
       mtp: { v: "None in the model. Separate DFlash2 drafter (4.04B, 5 layers) drafts 16-token blocks from target layers 1, 20, 39, 58, 77", s: "C" },
       kv: { v: "64 KiB per token from global layers (16 × 2 × 8 × 128 × 2 B)", s: "D" },
       state: { v: "SWA ring 256 MiB (64 layers × 1,024 tokens × 4 KiB)", s: "D" },
-      precision: { v: "BF16, trained without quantization; NVFP4 checkpoint (36 GB of weights per the X infographic) for DGX Spark", s: "B+C+X" },
+      precision: { v: "BF16, trained without quantization. The NVFP4 checkpoint (ModelOpt, group 16, FP4 weights and activations) quantizes only the FFN layers; attention, embedding and LM head stay BF16, for 57.2 GB in all. The X infographic's 36 GB assumes every weight in NVFP4", s: "B+C+X" },
       modalities: { v: "Text only", s: "C" },
       encoders: { v: "—", s: "" },
     },
@@ -5805,8 +5805,8 @@ window.MODELS = [
       ],
     },
     highlights: [
-      { t: "<b>Value residuals.</b> Each layer's value projection reads a learned mix of its normed input and the scaled token embedding. In the released weights layer 6 takes its values entirely from the embedding, layers 11–39 almost ignore it, and many layers from 40 on take 40–93% from it.", s: "C+D" },
-      { t: "<b>More heads, smaller windows.</b> 80 query heads × 128 give a query width twice d_model. To pay for them, Ricursive raised the SWA share to 4 of every 5 layers and cut the window to 1,024.", s: "B+C" },
+      { t: "<b>Value residuals.</b> Each layer's value projection reads a learned mix of its normed input and the scaled token embedding. In the released weights layer 6 takes its values entirely from the embedding, layers 11–39 almost ignore it, and many layers from 40 on take 40–93% from it. The X infographic plots the same pattern.", s: "C+X+D" },
+      { t: "<b>More heads, smaller windows.</b> 80 query heads × 128 give a query width twice d_model (Beam: 1.2 × d, Muse Spark Open: 1.0 × d). To pay for them, Ricursive raised the SWA share to 4 of every 5 layers and cut the window to 1,024. Each token also passes through an FFN 8 × d wide, versus 4 × d of active expert width in both MoEs.", s: "B+C+D" },
       { t: "<b>Global NoPE.</b> Only the sliding-window layers use RoPE; the 16 global layers have no positional encoding, with no rope scaling for the 1M context.", s: "B+C" },
       { t: "<b>Dense on purpose.</b> Ricursive chose a dense model to keep training simple: 40% MFU with simple sharding, no custom kernels and BF16 throughout, by a team that grew from 1 to 5 people. Total R&D cost was $32M.", s: "B" },
       { t: "<b>Steep RL climb.</b> Terminal-Bench 2.1 reached 80.52 after 1.4M RL rollouts, which Ricursive puts at about 70× fewer than Reflection Beam's.", s: "B" },
@@ -5860,7 +5860,8 @@ window.MODELS = [
         { k: "Tokens", v: "12T, text only, predominantly English and code", s: "B+C" },
         { k: "Steps", v: "877,500 at 8K; batch 1,408 → 3,072 sequences", s: "C" },
         { k: "Efficiency", v: "40% MFU in pre- and post-training; BF16, simple sharding, no custom kernels", s: "B+C" },
-        { k: "Cost", v: "$32M total R&D, including ladder runs, evals and data generation. The X infographic estimates the final pretraining run at about $9M", s: "B+X" },
+        { k: "Cost", v: "$32M total R&D, including ladder runs, evals and data generation", s: "B" },
+        { k: "Final-run estimate", v: "About $9M of pretraining compute: 6 × 64.8B × 12T = 4.7e24 FLOPs at 40% MFU on B200 is about 1.44M GPU-hours, priced at $6.25/h. The X infographic gives the same figure and puts Beam's final pretraining plus RL at about $79M", s: "X+D" },
         { k: "Starting point", v: "Olmo 3 model ladder, then six ladder versions (v1.0–v1.6, with v1.4 rejected) and new data", s: "B" },
       ],
       stages: [
@@ -5871,6 +5872,7 @@ window.MODELS = [
       mixes: [],
       notes: [
         { t: "Each stage's steps × batch × sequence length matches its token count (for example 8,000 × 384 × 65,536 = 201B).", s: "D" },
+        { t: "Ladder gains per step at 4B, as compute saved versus the step before (X infographic, read from Ricursive's chart): v1.0 StepFun batch + LR 2.1×, v1.1 depth + width 1.10×, v1.2 pre + post norm 1.17×, v1.3 gated attention 1.08×, v1.5 global NoPE + LR to zero 1.08×, v1.6 value residuals 1.09×, final data 5.1×. Rejected v1.4 mHC: 1.08×. All steps together: 11× at 0.2B, 8× at 0.6B, 10× at 1.1B, 16× at 2B and 17× at 4B. Reading the points directly gives 19× rather than the blog's 16×.", s: "X" },
         { t: "Base model on Ricursive's Olmes fork: MMLU 83.7, MMLU-Pro 61.5, GPQA-Diamond 38.4, SimpleQA-Verified 10.1, HumanEval 70.9, MBPP 81.5, GSM8K 88.5, MATH 59.1. Ricursive says it is close to DeepSeek V3.1 and V4 Flash on reasoning, math and code.", s: "C" },
       ],
     },
@@ -5892,7 +5894,8 @@ window.MODELS = [
       stats: [
         { k: "Steps", v: "700 at 128K, batch 2,048", s: "C" },
         { k: "Rollouts", v: "1.4M (700 × 2,048 = 1.43M)", s: "B+D" },
-        { k: "Gain", v: "+7.9 on Terminal-Bench 2.1 over SFT, per the X infographic", s: "X" },
+        { k: "Gain", v: "+7.9 on Terminal-Bench 2.1 over the SFT checkpoint (about 72.6 → 80.5), per the X infographic", s: "X" },
+        { k: "Versus Beam", v: "The X infographic shows Beam gaining 24.6 points over about 78M rollouts, about 56× Ripple's. The blog's 'roughly 70× fewer' implies about 98M", s: "B+X+D" },
       ],
       methods: [
         { name: "Truncated importance sampling", t: "Named in the blog without details. In common use it reweights tokens by the trainer-to-sampler probability ratio, capped, to correct for the mismatch between the two.", s: "B" },
