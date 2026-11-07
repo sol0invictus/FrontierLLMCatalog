@@ -5,26 +5,54 @@
   const KINDS = window.SOURCE_KINDS;
   const PRIORITY = Object.keys(KINDS); // R, B, C, X, D
   const byId = (id) => MODELS.find((m) => m.id === id);
+  // Each model has a readable URL slug from its name, unless the data sets one.
+  const slugOf = (m) => m.slug || m.name.toLowerCase().replace(/[()]/g, "").replace(/[^a-z0-9.]+/g, "-").replace(/^-+|-+$/g, "");
+  const byKey = (k) => MODELS.find((m) => slugOf(m) === k || m.id === k);
 
   const esc = (s) =>
     String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const $ = (sel) => document.querySelector(sel);
 
-  /* ---------- State (mirrored in the URL hash as a bare token) ---------- */
+  /* ---------- State, mirrored in the URL ----------
+   * On a real site every view has its own path: /<slug> for a model and
+   * /compare/<a>-vs-<b> for a pair (the host serves index.html for unknown paths).
+   * Inside a frame or from a file, where paths can't change, the same routes go in
+   * the hash: #model-<slug>, #compare-<a>-vs-<b>. Old #model-<id> links still work. */
   const state = { mode: "home", one: MODELS[0].id, a: MODELS[0].id, b: MODELS[1].id };
   let kvCtx = 1048576;
+  const PATH_MODE = /^https?:$/.test(location.protocol) && window.top === window.self;
+  const hrefFor = (m) => (PATH_MODE ? "/" : "#model-") + slugOf(m);
+  const pairHref = (a, b) => (PATH_MODE ? "/compare/" : "#compare-") + `${slugOf(a)}-vs-${slugOf(b)}`;
 
-  function readHash() {
-    const h = location.hash.replace("#", "");
-    state.mode = "home";
-    let m = h.match(/^model-([a-z0-9]+)$/);
-    if (m && byId(m[1])) { state.mode = "one"; state.one = m[1]; return; }
-    m = h.match(/^compare-([a-z0-9]+)-([a-z0-9]+)$/);
-    if (m && byId(m[1]) && byId(m[2]) && m[1] !== m[2]) { state.mode = "two"; state.a = m[1]; state.b = m[2]; }
+  function parseRoute(r) {
+    r = decodeURIComponent(r).replace(/^\/+|\/+$/g, "").toLowerCase();
+    let m = r.match(/^(?:compare[-/])(.+)-vs-(.+)$/) || r.match(/^compare-([a-z0-9]+)-([a-z0-9]+)$/);
+    if (m) {
+      const a = byKey(m[1]), b = byKey(m[2]);
+      if (a && b && a !== b) return { mode: "two", a: a.id, b: b.id };
+    }
+    const one = byKey(r.replace(/^model[-/]/, ""));
+    if (r && one) return { mode: "one", one: one.id };
+    return { mode: "home" };
   }
-  function writeHash() {
-    const h = state.mode === "home" ? location.pathname + location.search : state.mode === "one" ? `#model-${state.one}` : `#compare-${state.a}-${state.b}`;
-    try { history.replaceState(null, "", h); } catch (e) { /* sandboxed: ignore */ }
+  function readRoute() {
+    const h = location.hash.replace("#", "");
+    const fromHash = h ? parseRoute(h) : { mode: "home" };
+    const route = fromHash.mode !== "home" || !PATH_MODE ? fromHash : parseRoute(location.pathname);
+    Object.assign(state, route);
+  }
+  function routeUrl() {
+    if (state.mode === "one") return hrefFor(byId(state.one));
+    if (state.mode === "two") return pairHref(byId(state.a), byId(state.b));
+    return PATH_MODE ? "/" : location.pathname + location.search;
+  }
+  function writeRoute(push) {
+    const url = routeUrl();
+    const now = PATH_MODE ? location.pathname + location.hash : location.hash || location.pathname + location.search;
+    try {
+      if (push && url !== now) history.pushState(null, "", url);
+      else history.replaceState(null, "", url);
+    } catch (e) { /* sandboxed: ignore */ }
   }
 
   /* ---------- Builders ---------- */
@@ -83,6 +111,57 @@
         .map((t) => `<div class="trick"><div class="mn">${esc(t.name)}${src(t.s)}</div><div class="mt">${esc(t.t)}</div></div>`)
         .join("")}</div></div>`)
       .join("");
+  }
+
+  /* ---------- Ablations: published controlled comparisons ---------- */
+  const supNum = (n) => String(n).split("").map((d) => "⁰¹²³⁴⁵⁶⁷⁸⁹"[+d] || d).join("");
+  function ablationChart(c) {
+    const W = 640, H = 300, L = 52, R = 14, T = 12, B = 44;
+    const lg = Math.log10, ln = Math.log;
+    const xs = c.series.flatMap((s) => s.pts.map((p) => lg(p[0])));
+    const x0 = Math.min(...xs, lg(c.xTicks[0])) - 0.12, x1 = Math.max(...xs, lg(c.xTicks[c.xTicks.length - 1])) + 0.06;
+    const y0 = ln(c.yTicks[0]) - 0.02, y1 = ln(c.yTicks[c.yTicks.length - 1]) + 0.02;
+    const X = (v) => L + ((lg(v) - x0) / (x1 - x0)) * (W - L - R);
+    const Y = (v) => T + (1 - (ln(v) - y0) / (y1 - y0)) * (H - T - B);
+    const steps = c.series.filter((s) => s.style === "step");
+    const color = (s) => s.style === "base" ? "var(--delta)" : s.style === "final" ? "var(--accent)" : s.style === "dropped" ? "var(--bar)"
+      : `color-mix(in srgb, var(--accent) ${Math.round(12 + (48 * steps.indexOf(s)) / Math.max(steps.length - 1, 1))}%, var(--bar))`;
+    const out = [`<svg viewBox="0 0 ${W} ${H}" class="ab-svg" role="img" aria-label="${esc(c.y)} against ${esc(c.x)}">`];
+    c.xTicks.forEach((v) => out.push(`<line x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${H - B}" class="ab-grid"/><text x="${X(v)}" y="${H - B + 16}" class="ab-tick" text-anchor="middle">10${supNum(Math.round(lg(v)))}</text>`));
+    c.yTicks.forEach((v) => out.push(`<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" class="ab-grid"/><text x="${L - 6}" y="${Y(v) + 3.5}" class="ab-tick" text-anchor="end">${v.toFixed(1)}</text>`));
+    out.push(`<line x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}" class="ab-axis"/><line x1="${L}" x2="${L}" y1="${T}" y2="${H - B}" class="ab-axis"/>`);
+    out.push(`<text x="${(L + W - R) / 2}" y="${H - 8}" class="ab-lab" text-anchor="middle">${esc(c.x)}</text>`);
+    out.push(`<text x="12" y="${(T + H - B) / 2}" class="ab-lab" text-anchor="middle" transform="rotate(-90 12 ${(T + H - B) / 2})">${esc(c.y)}</text>`);
+    const order = [...c.series].sort((a, b) => ({ dropped: 0, step: 1, base: 2, final: 3 }[a.style] - { dropped: 0, step: 1, base: 2, final: 3 }[b.style]));
+    order.forEach((s) => {
+      const d = s.pts.map((p, i) => `${i ? "L" : "M"}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join("");
+      const wide = s.style === "final" || s.style === "base";
+      out.push(`<path d="${d}" fill="none" stroke="${color(s)}" stroke-width="${wide ? 2.6 : 1.7}" ${s.style === "dropped" ? 'stroke-dasharray="4 3"' : ""} stroke-linejoin="round"/>`);
+      s.pts.forEach((p) => out.push(`<circle cx="${X(p[0]).toFixed(1)}" cy="${Y(p[1]).toFixed(1)}" r="${wide ? 3.4 : 2.6}" fill="${color(s)}" stroke="var(--surface)" stroke-width="1"><title>${esc(s.name)}: ${p[0].toExponential(2)} FLOPs, loss ${p[1]}</title></circle>`));
+    });
+    out.push("</svg>");
+    const legend = c.series.map((s) => `<span class="lg"><span class="ab-sw${s.style === "dropped" ? " dash" : ""}" style="--c:${color(s)}"></span>${esc(s.name)}</span>`).join("");
+    return `<div class="ab-chart">${out.join("")}</div><div class="legend-row tight">${legend}</div>`;
+  }
+  function ablationsBlock(m) {
+    return (m.ablations || []).map((a) => {
+      const unit = a.unit || "";
+      const all = a.rows.flatMap((r) => r.v).filter((v) => v > 1);
+      const top = Math.log(Math.max(...all, 1.0001));
+      const cell = (v, ext) => {
+        const k = v > 1 ? Math.min(Math.log(v) / top, 1) : 0;
+        const pct = v > 1 ? Math.round(8 + 52 * k) : 0;
+        const style = pct ? ` style="background:color-mix(in srgb, var(--accent) ${pct}%, transparent)${pct > 38 ? ";color:var(--heat-hi-ink)" : ""}"` : "";
+        return `<td class="ab-v${v < 1 ? " lo" : ""}${ext ? " ext" : ""}"${style}${ext ? ' title="Extrapolated past the end of a curve"' : ""}>${v.toFixed(2)}${unit}</td>`;
+      };
+      const row = (r, foot) => `<tr class="${r.verdict === "rejected" ? "ab-rej" : ""}"><th scope="row">${esc(r.k)}</th><td class="ab-t">${esc(r.t)}${r.note ? `<span class="ab-note">${esc(r.note)}</span>` : ""}</td><td class="ab-vs">${esc(r.vs || "")}</td>${r.v.map((v, i) => foot ? `<td class="ab-v ab-tot">${v.toFixed(1)}${unit}</td>` : cell(v, (r.ext || []).includes(i))).join("")}<td>${r.verdict ? `<span class="ab-verdict ${r.verdict}">${r.verdict === "rejected" ? "Rejected" : "Kept"}</span>` : ""}</td></tr>`;
+      return `<div class="panel pad ab"><h3>${esc(a.title)}${src(a.s)}</h3><p class="ab-setup">${esc(a.setup)}</p>
+        ${a.chart ? ablationChart(a.chart) : ""}
+        <div class="scroll"><table class="grid ab-table"><thead><tr><th scope="col">Step</th><th scope="col">Change</th><th scope="col">Against</th>${a.cols.map((c) => `<th scope="col" class="ab-v">${esc(c)}</th>`).join("")}<th scope="col">Result</th></tr></thead>
+        <tbody>${a.rows.map((r) => row(r)).join("")}</tbody>${a.total ? `<tfoot>${row(a.total, true)}</tfoot>` : ""}</table></div>
+        <p class="chart-note">Shading grows with the saving; grey values below 1${unit} are losses; italic cells are extrapolated.</p>
+        ${facts(a.notes)}</div>`;
+    }).join("");
   }
   const CAT_ORDER = [...new Set(window.BENCHMARKS.map((b) => b.cat))];
   const BENCH = window.BENCHMARKS.map((b, i) => ({ b, i }))
@@ -631,6 +710,7 @@
       sec("sec-sft", "Fine-tuning", "Supervised stages, data sources and teacher models.", refsLine(m, "sft") + phaseOne(m, "sft")),
       sec("sec-rl", "Reinforcement learning", "Scale, environments, algorithms and new methods.", refsLine(m, "rl") + phaseOne(m, "rl")),
       sec("sec-tricks", "Training tricks", "Specific choices in optimization, numerics, data, distillation and RL that the report, blog or code make explicit.", refsLine(m, "tricks") + `<div class="panel pad stackv">${tricksBlock(m, false)}</div>`),
+      m.ablations && m.ablations.length ? sec("sec-ablations", "Ablations", "Controlled comparisons the lab published: one change at a time, measured on the lab's own setup.", refsLine(m, "ablations") + ablationsBlock(m)) : "",
       sec("sec-bench", "Benchmarks", "Post-trained scores with the evaluation setting next to each number.", refsLine(m, "bench") + benchOne(m)),
       sec("sec-sources", "Sources", "Grouped in priority order. Each fact on this page cites the highest group that states it.", `<div class="panel pad srcgrid">${sourcesBlock(m)}</div>`),
     ].join("");
@@ -658,6 +738,7 @@
       sec("sec-sft", "Fine-tuning", "", refs2("sft") + pc("sft")),
       sec("sec-rl", "Reinforcement learning", "", refs2("rl") + pc("rl")),
       sec("sec-tricks", "Training tricks", "", refs2("tricks") + `<div class="cols" style="--n:2">${ms.map((m) => `<article class="panel col"><h3>${esc(m.name)}</h3>${tricksBlock(m, true)}</article>`).join("")}</div>`),
+      ms.some((m) => m.ablations && m.ablations.length) ? sec("sec-ablations", "Ablations", "Controlled comparisons each lab published, on its own setup.", ms.map((m) => m.ablations && m.ablations.length ? `<h3 class="mini first">${esc(m.name)}</h3>${refsLine(m, "ablations")}${ablationsBlock(m)}` : `<h3 class="mini first">${esc(m.name)}</h3><p class="chart-note">No published ablations recorded.</p>`).join("")) : "",
       sec("sec-bench", "Benchmarks", "Scores as each lab reported them; harnesses often differ or are unspecified, so read gaps as indicative. ▲ marks the higher reported score. Rows marked settings differ use different protocols (for example with vs without tools), so no winner is shown.", `<div id="bench-two">${benchTwo(a, b)}</div>`),
       sec("sec-sources", "Sources", "Grouped in priority order.", `<div class="cols" style="--n:2">${ms.map((m) => `<article class="panel col"><h3>${esc(m.name)}</h3>${sourcesBlock(m)}</article>`).join("")}</div>`),
     ].join("");
@@ -717,8 +798,8 @@
       .map((m) => {
         const c = Math.min(1048576, ctxMax(m));
         const kv = kvFor(m, c);
-        return `<tr class="grow" data-open="${m.id}" tabindex="0" aria-label="Open ${esc(m.name)}">
-          <th scope="row"><span class="gname">${esc(m.name)}</span><span class="glab">${esc(m.org)}</span></th>
+        return `<tr class="grow" data-open="${m.id}">
+          <th scope="row"><a class="gname" href="${esc(hrefFor(m))}" data-open="${m.id}">${esc(m.name)}</a><span class="glab">${esc(m.org)}</span></th>
           <td class="num">${esc(m.glance.date)}</td>
           <td class="pcell">${paramsBar(m)}</td>
           <td class="num">${m.layers.length}</td>
@@ -740,8 +821,8 @@
   function fingerprints() {
     const maxDepth = Math.max(...MODELS.map((m) => m.layers.length));
     return `<div class="panel pad fp">${layerLegend()}${MODELS.map(
-      (m) => `<div class="fp-row" data-open="${m.id}" tabindex="0" aria-label="Open ${esc(m.name)}">
-        <div class="fp-label"><span class="gname">${esc(shortName(m))}</span><span class="glab">${m.layers.length} layers · ${esc(m.glance.attn)}</span></div>
+      (m) => `<div class="fp-row" data-open="${m.id}">
+        <div class="fp-label"><a class="gname" href="${esc(hrefFor(m))}" data-open="${m.id}">${esc(shortName(m))}</a><span class="glab">${m.layers.length} layers · ${esc(m.glance.attn)}</span></div>
         <div class="fp-strip">${strip(m, maxDepth)}</div>
         <p class="fp-sig">${esc(m.glance.sig)}</p>
       </div>`
@@ -750,7 +831,7 @@
 
   function heatmap() {
     const rows = HEAT_ROWS.map((n) => BENCH.find((b) => b.name === n)).filter(Boolean);
-    const head = `<tr><th scope="col">Benchmark</th>${MODELS.map((m) => `<th scope="col"><button type="button" class="linkbtn" data-open="${m.id}">${esc(shortName(m))}</button></th>`).join("")}</tr>`;
+    const head = `<tr><th scope="col">Benchmark</th>${MODELS.map((m) => `<th scope="col"><a class="linkbtn" href="${esc(hrefFor(m))}" data-open="${m.id}">${esc(shortName(m))}</a></th>`).join("")}</tr>`;
     const body = rows
       .map((b) => {
         const vals = MODELS.map((m) => b.scores[m.id]?.v).filter((v) => typeof v === "number");
@@ -781,7 +862,7 @@
           <div class="hero-text">
             <h1>Frontier LLM Catalogue</h1>
             <p class="lede">The current open-weight models, read down to the config file: layer layouts, attention and routing, training stages and data, RL methods, training tricks and benchmarks. Each fact carries a mark for its source, and the lab's technical report is used first.</p>
-            <p class="edition"><span><b>${MODELS.length}</b> models</span><span><b>${labs}</b> labs</span><span><b>${reports}</b> with a technical report</span><span><b>${window.BENCHMARKS.length}</b> benchmarks</span><span><b>${factCount}</b> sourced facts</span><span>Compiled 6 Nov 2026</span></p>
+            <p class="edition"><span><b>${MODELS.length}</b> models</span><span><b>${labs}</b> labs</span><span><b>${reports}</b> with a technical report</span><span><b>${window.BENCHMARKS.length}</b> benchmarks</span><span><b>${factCount}</b> sourced facts</span><span>Compiled 7 Nov 2026</span></p>
             <div class="hero-cta">
               <label class="sr-only" for="hero-pick">Open a model</label>
               <select id="hero-pick" class="pick-select big"><option value="" selected disabled>Open a model…</option>${modelOptions(null, null)}</select>
@@ -824,13 +905,14 @@
     $("#rail-title").textContent = state.mode === "one" ? byId(state.one).name : "";
   }
 
-  function render(scrollTop) {
+  function render(scrollTop, replace) {
     renderPicker();
     const v = $("#view");
     v.innerHTML = state.mode === "home" ? viewHome() : state.mode === "one" ? viewOne(byId(state.one)) : viewTwo(byId(state.a), byId(state.b));
     v.dataset.mode = state.mode;
+    document.querySelectorAll("#rail-nav [data-go]").forEach((b) => { b.hidden = state.mode !== "home" && !document.getElementById(b.dataset.go); });
     document.title = state.mode === "home" ? "Frontier LLM Catalogue" : state.mode === "one" ? `${byId(state.one).name} · Frontier LLM Catalogue` : `${shortName(byId(state.a))} vs ${shortName(byId(state.b))} · Frontier LLM Catalogue`;
-    writeHash();
+    writeRoute(!replace);
     if (scrollTop) window.scrollTo({ top: 0 });
   }
 
@@ -877,18 +959,18 @@
       }
       if (e.target.id === "hero-compare") { openCompare(); return; }
       const o = e.target.closest("[data-open]");
-      if (o) openModel(o.dataset.open);
-    });
-    v.addEventListener("keydown", (e) => {
-      if (e.key !== "Enter" && e.key !== " ") return;
-      const o = e.target.closest && e.target.closest("tr[data-open], .fp-row[data-open]");
-      if (o) { e.preventDefault(); openModel(o.dataset.open); }
+      if (!o) return;
+      // Model names are real links: let the browser handle new-tab and copy-link gestures.
+      if (e.target.closest("a[href]") && (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0)) return;
+      e.preventDefault();
+      openModel(o.dataset.open);
     });
     v.addEventListener("change", (e) => {
       if (e.target.id === "bench-shared") { benchShared = e.target.checked; $("#bench-two").innerHTML = benchTwo(byId(state.a), byId(state.b)); }
       if (e.target.id === "hero-pick" && e.target.value) openModel(e.target.value);
     });
-    window.addEventListener("hashchange", () => { readHash(); render(true); });
+    window.addEventListener("hashchange", () => { readRoute(); render(true, true); });
+    window.addEventListener("popstate", () => { readRoute(); render(true, true); });
   }
 
   function initTooltip() {
@@ -935,9 +1017,9 @@
     `<span>Source key, in priority order:</span>` +
     Object.entries(KINDS).map(([k, v]) => `<span class="lg"><span class="src src-${k}" style="margin:0">${k}</span>${esc(v.long)}</span>`).join("");
 
-  readHash();
+  readRoute();
   bind();
-  render();
+  render(false, true);
   initTooltip();
   initRail();
 })();

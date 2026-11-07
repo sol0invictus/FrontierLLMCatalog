@@ -794,6 +794,36 @@ a { text-decoration: none; }
 a:hover { text-decoration: underline; }
 footer.wrap { padding-block: 2.5rem 1.5rem; }
 
+/* Ablations: a ladder chart and a table of savings per step. */
+.ab + .ab { margin-top: 1rem; }
+.ab h3 { margin: 0 0 0.4rem; }
+.ab-setup { margin: 0 0 1rem; color: var(--ink-2); font-size: var(--step--1); max-width: 72ch; }
+.ab-chart { overflow-x: auto; }
+.ab-svg { display: block; width: 100%; min-width: 30rem; max-width: 46rem; height: auto; }
+.ab-grid { stroke: var(--rule); stroke-width: 1; }
+.ab-axis { stroke: var(--ink-3); stroke-width: 1; }
+.ab-tick { font-family: var(--font-mono); font-size: 10.5px; fill: var(--ink-3); }
+.ab-lab { font-family: var(--font-mono); font-size: 11px; fill: var(--ink-2); }
+.ab-sw { display: inline-block; width: 1.1rem; height: 0; border-top: 2.5px solid var(--c); }
+.ab-sw.dash { border-top-style: dashed; }
+.ab-table { margin-top: 0.25rem; }
+.ab-table th.ab-v, .ab-table td.ab-v { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ab-table td.ab-v.lo { color: var(--ink-3); }
+.ab-table td.ab-v.ext { font-style: italic; }
+.ab-table td.ab-t { min-width: 15rem; }
+.ab-table .ab-note { display: block; color: var(--ink-3); font-size: 0.75rem; margin-top: 0.15rem; }
+.ab-table td.ab-vs { color: var(--ink-3); white-space: nowrap; }
+.ab-table tr.ab-rej th, .ab-table tr.ab-rej td.ab-t { color: var(--ink-3); }
+.ab-table tfoot th, .ab-table tfoot td { font-weight: 600; border-top: 1.5px solid var(--ink-3); border-bottom: 0; }
+.ab-verdict { font-size: 0.72rem; padding: 0.1rem 0.45rem; border-radius: 999px; white-space: nowrap; }
+.ab-verdict.kept { color: var(--st-detailed); background: var(--st-detailed-bg); }
+.ab-verdict.rejected { color: var(--st-none); background: var(--st-none-bg); }
+.ab .facts { margin-top: 0.9rem; }
+
+/* Model names on the home page are real links to each model's own URL. */
+a.gname, a.linkbtn { text-decoration: none; }
+a.gname:hover, a.gname:focus-visible { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+
 </style>
 </head>
 <body>
@@ -826,6 +856,7 @@ footer.wrap { padding-block: 2.5rem 1.5rem; }
         <button type="button" data-go="sec-sft">Fine-tuning</button>
         <button type="button" data-go="sec-rl">RL</button>
         <button type="button" data-go="sec-tricks">Tricks</button>
+        <button type="button" data-go="sec-ablations">Ablations</button>
         <button type="button" data-go="sec-bench">Benchmarks</button>
         <button type="button" data-go="sec-sources">Sources</button>
       </nav>
@@ -837,7 +868,7 @@ footer.wrap { padding-block: 2.5rem 1.5rem; }
 
 <footer class="wrap">
   <div class="legend-row" id="src-legend" aria-label="Source key"></div>
-  <p>Compiled 2026-11-06. Each fact cites the highest-tier source that states it: (1) technical report, (2) the lab's official blog, (3) the Hugging Face model card, transformers implementation and config.json, (4) other sources such as X posts and third-party blogs. Benchmarks are self-reported unless a note names another source.</p>
+  <p>Compiled 2026-11-07. Each fact cites the highest-tier source that states it: (1) technical report, (2) the lab's official blog, (3) the Hugging Face model card, transformers implementation and config.json, (4) other sources such as X posts and third-party blogs. Benchmarks are self-reported unless a note names another source.</p>
 </footer>
 <footer class="site-footer">A project by <a class="ext" href="https://www.sunnyguha.com/projects">Sunny Guha</a></footer>
 
@@ -3258,6 +3289,7 @@ window.MODELS = [
   /* ------------------------------------------------------------------ */
   {
     id: "qwen38",
+    slug: "qwen3.8-max",
     glance: {"date": "2026-08-08", "attn": "DeltaNet + attn · 3:1", "moe": "512 → 10 + 1 shared", "tokens": "n/d", "report": "Blog + card", "sig": "Open weights of a Max-class model: 2.4T Qwen3.5-style hybrid"},
     benchSource: { s: "C", t: "Hugging Face model card (tier 3), column 'Qwen3.8-Max'. The blog announces the model but the scores are taken from the card. Coding runs mostly in Claude Code with a 256K window; Terminal-Bench 2.1 is avg@10 with a 5 h timeout." },
     name: "Qwen3.8-Max (2.4T-A95B)",
@@ -5836,6 +5868,10 @@ window.MODELS = [
         { label: "modeling_ricursive.py", url: "https://huggingface.co/ricursiveAI/Ripple-65B-Preview/blob/main/modeling_ricursive.py", s: "C" },
         { label: "Elie Bakouch's infographic", url: "https://x.com/eliebakouch/status/2118111893160435742/photo/1", s: "X" },
       ],
+      ablations: [
+        { label: "Blog: Careful Model Laddering (chart)", url: "https://www.ricursive.com/ripple", s: "B" },
+        { label: "Elie Bakouch's infographic (step table)", url: "https://x.com/eliebakouch/status/2118111893160435742/photo/1", s: "X" },
+      ],
       bench: [
         { label: "Blog: Terminal-Bench 2.1", url: "https://www.ricursive.com/ripple", s: "B" },
         { label: "Model card: Instruct and Base benchmark tables", url: "https://huggingface.co/ricursiveAI/Ripple-65B-Preview", s: "C" },
@@ -5849,10 +5885,51 @@ window.MODELS = [
       { cat: "Long context", name: "Global NoPE with a final LR cooldown", t: "Ladder v1.5 removed RoPE from global layers and added a learning-rate cooldown to zero at the end of pretraining.", s: "B" },
       { cat: "Scaling", name: "StepFun scaling laws and a smooth ladder", t: "Ladder v1.0 set batch size and learning rate with StepFun's scaling laws; v1.1 scaled width and depth smoothly across ladder sizes. The hero run ramped batch from 1,408 to 3,072 sequences of 8K.", s: "B+C" },
       { cat: "Scaling", name: "Rejected: 2-stream mHC", t: "Manifold-constrained hyper-connections (ladder v1.4) helped at small scale but not at 4B, so they were dropped.", s: "B" },
-      { cat: "Data", name: "Code-heavy own data", t: "The final ladder step swapped in Ricursive's own pretraining set with much more code. All steps together cut the compute needed for a given code loss (dolma_stack) by up to 16× at 4B versus the Olmo 3 ladder; the card says up to 55× for the full run. The X infographic reads the data swap alone as 4.5–5.4× at each size.", s: "B+C+X" },
+      { cat: "Data", name: "Code-heavy own data", t: "The final ladder step swapped in Ricursive's own pretraining set with much more code. All steps together cut the compute needed for a given code loss (dolma_stack) by up to 16× at 4B versus the Olmo 3 ladder; the card says up to 55× for the full run. The blog's ladder chart puts the data swap alone at 4.5–5.4× at each size (see Ablations).", s: "B+C+D" },
       { cat: "Data", name: "Synthetic data kept out of pretraining", t: "Pretraining uses mostly natural data with minimal synthetic data. Synthetic data goes into mid-training so its recipe could change without blocking pretraining. No post-training data was bought.", s: "B+C" },
       { cat: "RL", name: "Tuned RL tasks", t: "Mixed RL uses truncated importance sampling, score centering and a linear length penalty on long-horizon synthetic environments. Harder tasks were added as the model improved.", s: "B" },
       { cat: "Inference", name: "DFlash2 block drafter", t: "A 4.04B, 5-layer drafter (4 SWA layers with a 4,096 window, then a NoPE global layer) proposes 16 tokens at once, using dynamic convolutions and a top-32 candidate selector. It reads hidden states from 5 target layers and reuses Ripple's embedding and head. Served through SGLang's DFLASH mode; 250 tok/s on 2 × B200 at batch 8.", s: "B+C" },
+    ],
+    ablations: [
+      {
+        title: "Pretraining ladder: what each change bought",
+        s: "B+D",
+        setup: "Ricursive started from Olmo 3's model ladder and changed one thing per version, training each version at five or six sizes. Each cell is how many times less compute the version needs than the one before it to reach the same code loss (dolma_stack cross-entropy) at that size. Values come from the plotted points of the blog's chart, which sits in the page as an SVG, so they are exact to the plot. The size labels are the X infographic's, and they match compute ≈ 6 · N · 20N.",
+        cols: ["0.2B", "0.6B", "1.1B", "2B", "4B"],
+        unit: "×",
+        rows: [
+          { k: "v1.0", t: "StepFun batch-size and learning-rate scaling laws", vs: "Olmo 3", v: [1.59, 1.02, 1.36, 1.59, 2.04], ext: [0, 4], verdict: "kept", note: "Uses Olmo 3's model sizes; read at the v1.1 grid's compute" },
+          { k: "v1.1", t: "New ladder that scales width and depth smoothly", vs: "v1.0", v: [0.97, 1.11, 1.03, 1.11, 1.10], ext: [0, 4], verdict: "kept" },
+          { k: "v1.2", t: "Post-norm → pre + post norm", vs: "v1.1", v: [0.97, 1.04, 1.14, 1.13, 1.17], ext: [0, 4], verdict: "kept", note: "Blog: neutral at small scale, better from 4B" },
+          { k: "v1.3", t: "Sigmoid gated attention", vs: "v1.2", v: [1.11, 1.13, 1.07, 1.04, 1.08], ext: [4], verdict: "kept" },
+          { k: "v1.4", t: "2-stream mHC (hyper-connections)", vs: "v1.3", v: [1.22, 1.17, 1.12, 1.27, 1.08], ext: [4], verdict: "rejected", note: "Blog: did not improve at 4B, so v1.5 builds on v1.3" },
+          { k: "v1.5", t: "Global NoPE and a final LR cooldown to zero", vs: "v1.3", v: [1.08, 1.04, 1.12, 1.21, 1.08], ext: [4], verdict: "kept" },
+          { k: "v1.6", t: "Value residuals", vs: "v1.5", v: [1.28, 1.21, 1.14, 1.13, 1.09], ext: [4], verdict: "kept" },
+          { k: "Final", t: "Ricursive's own pretraining data, with much more code", vs: "v1.6", v: [4.76, 4.53, 4.70, 5.43, 5.06], ext: [3, 4], verdict: "kept" },
+        ],
+        total: { k: "Together", t: "Product of the kept steps (all but v1.4)", vs: "Olmo 3", v: [10.9, 7.7, 10.3, 15.5, 16.8] },
+        chart: {
+          x: "Training compute (FLOPs)", y: "Code loss (dolma_stack CE)",
+          xTicks: [1e19, 1e20, 1e21, 1e22], yTicks: [0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0],
+          series: [
+            { name: "Olmo 3", style: "base", pts: [[4.35e+18, 2.010], [1.65e+19, 1.680], [3.6e+19, 1.560], [6.9e+19, 1.490], [1.96e+20, 1.390], [1.21e+21, 1.240], [5.69e+21, 1.140]] },
+            { name: "v1.0", style: "step", pts: [[4.35e+18, 1.890], [1.65e+19, 1.674], [3.6e+19, 1.560], [6.9e+19, 1.475], [1.96e+20, 1.355], [1.21e+21, 1.199]] },
+            { name: "v1.1", style: "step", pts: [[4.28e+18, 1.898], [3.96e+19, 1.533], [1.38e+20, 1.391], [4.26e+20, 1.277], [1.78e+21, 1.161]] },
+            { name: "v1.2", style: "step", pts: [[4.28e+18, 1.903], [3.96e+19, 1.528], [1.38e+20, 1.377], [4.26e+20, 1.267], [1.78e+21, 1.149]] },
+            { name: "v1.3", style: "step", pts: [[4.58e+18, 1.871], [4.41e+19, 1.499], [1.52e+20, 1.360], [4.81e+20, 1.253], [2.02e+21, 1.133]] },
+            { name: "v1.4 (rejected)", style: "dropped", pts: [[4.58e+18, 1.835], [4.41e+19, 1.481], [1.52e+20, 1.349], [4.81e+20, 1.232], [2.02e+21, 1.127]] },
+            { name: "v1.5", style: "step", pts: [[4.58e+18, 1.857], [4.41e+19, 1.494], [1.52e+20, 1.349], [4.81e+20, 1.236], [2.02e+21, 1.127]] },
+            { name: "v1.6", style: "step", pts: [[4.58e+18, 1.814], [4.41e+19, 1.471], [1.52e+20, 1.336], [4.81e+20, 1.226], [2.02e+21, 1.121]] },
+            { name: "Final", style: "final", pts: [[4.58e+18, 1.570], [4.41e+19, 1.309], [1.52e+20, 1.196], [4.81e+20, 1.103], [2.02e+21, 1.013], [8.33e+21, 0.927]] },
+          ],
+        },
+        notes: [
+          { t: "How a cell is computed: take the version's loss at that size, find the compute at which the earlier version reaches the same loss (straight lines between plotted points, in log compute against log loss), and divide by the version's own compute. Italic cells needed a curve extended past its last point. The X infographic's table, read the same way, agrees to within about 0.05 in every cell, and its totals (11×, 8×, 10×, 16×, 17×) match the product row.", s: "X+D" },
+          { t: "The blog's headline is 16× less compute for the same code loss at 4B. The arrow on its chart, from Olmo 3's largest run to the final ladder, spans 17×, and reading the points gives 19×. The model card says the gap grows to 55× for the full 65B run, which is past the end of both curves.", s: "B+C+D" },
+          { t: "Measured directly, the final ladder needs 7.4× (0.2B), 11.6× (0.6B) and 15.5× (1.1B) less compute than Olmo 3 for the same loss. At 2B and above the Olmo 3 curve has to be extended, giving 22–31×. The final ladder's slope is steeper than Olmo 3's, so the gap widens with scale, as the blog notes.", s: "B+D" },
+          { t: "Steps v1.1–v1.6 each save at most 1.3×, and v1.0's scaling laws up to 2×. Together v1.0–v1.6 save 1.7–3.3× depending on size. The data change alone saves 4.5–5.4× at every size.", s: "B+D" },
+        ],
+      },
     ],
     pretrain: {
       headline: "Pretrained from scratch on 12T text tokens, mostly English and code, at 8K sequence length. The released base checkpoint is pretrain-only.",
@@ -5872,7 +5949,6 @@ window.MODELS = [
       mixes: [],
       notes: [
         { t: "Each stage's steps × batch × sequence length matches its token count (for example 8,000 × 384 × 65,536 = 201B).", s: "D" },
-        { t: "Ladder gains per step at 4B, as compute saved versus the step before (X infographic, read from Ricursive's chart): v1.0 StepFun batch + LR 2.1×, v1.1 depth + width 1.10×, v1.2 pre + post norm 1.17×, v1.3 gated attention 1.08×, v1.5 global NoPE + LR to zero 1.08×, v1.6 value residuals 1.09×, final data 5.1×. Rejected v1.4 mHC: 1.08×. All steps together: 11× at 0.2B, 8× at 0.6B, 10× at 1.1B, 16× at 2B and 17× at 4B. Reading the points directly gives 19× rather than the blog's 16×.", s: "X" },
         { t: "Base model on Ricursive's Olmes fork: MMLU 83.7, MMLU-Pro 61.5, GPQA-Diamond 38.4, SimpleQA-Verified 10.1, HumanEval 70.9, MBPP 81.5, GSM8K 88.5, MATH 59.1. Ricursive says it is close to DeepSeek V3.1 and V4 Flash on reasoning, math and code.", s: "C" },
       ],
     },
@@ -5894,8 +5970,8 @@ window.MODELS = [
       stats: [
         { k: "Steps", v: "700 at 128K, batch 2,048", s: "C" },
         { k: "Rollouts", v: "1.4M (700 × 2,048 = 1.43M)", s: "B+D" },
-        { k: "Gain", v: "+7.9 on Terminal-Bench 2.1 over the SFT checkpoint (about 72.6 → 80.5), per the X infographic", s: "X" },
-        { k: "Versus Beam", v: "The X infographic shows Beam gaining 24.6 points over about 78M rollouts, about 56× Ripple's. The blog's 'roughly 70× fewer' implies about 98M", s: "B+X+D" },
+        { k: "Gain", v: "Terminal-Bench 2.1 72.7 → 80.5 over the run (+7.9), with checkpoints at 0.32M (75.3) and 0.97M (77.9) rollouts", s: "B+D" },
+        { k: "Versus Beam", v: "The blog's chart shows Beam going 53.3 → 77.9 between 3M and 81M rollouts, about 57× Ripple's total. The text says 'roughly 70× fewer'", s: "B+D" },
       ],
       methods: [
         { name: "Truncated importance sampling", t: "Named in the blog without details. In common use it reweights tokens by the trainer-to-sampler probability ratio, capped, to correct for the mismatch between the two.", s: "B" },
@@ -8607,26 +8683,54 @@ window.STACKS = {
   const KINDS = window.SOURCE_KINDS;
   const PRIORITY = Object.keys(KINDS); // R, B, C, X, D
   const byId = (id) => MODELS.find((m) => m.id === id);
+  // Each model has a readable URL slug from its name, unless the data sets one.
+  const slugOf = (m) => m.slug || m.name.toLowerCase().replace(/[()]/g, "").replace(/[^a-z0-9.]+/g, "-").replace(/^-+|-+$/g, "");
+  const byKey = (k) => MODELS.find((m) => slugOf(m) === k || m.id === k);
 
   const esc = (s) =>
     String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const $ = (sel) => document.querySelector(sel);
 
-  /* ---------- State (mirrored in the URL hash as a bare token) ---------- */
+  /* ---------- State, mirrored in the URL ----------
+   * On a real site every view has its own path: /<slug> for a model and
+   * /compare/<a>-vs-<b> for a pair (the host serves index.html for unknown paths).
+   * Inside a frame or from a file, where paths can't change, the same routes go in
+   * the hash: #model-<slug>, #compare-<a>-vs-<b>. Old #model-<id> links still work. */
   const state = { mode: "home", one: MODELS[0].id, a: MODELS[0].id, b: MODELS[1].id };
   let kvCtx = 1048576;
+  const PATH_MODE = /^https?:$/.test(location.protocol) && window.top === window.self;
+  const hrefFor = (m) => (PATH_MODE ? "/" : "#model-") + slugOf(m);
+  const pairHref = (a, b) => (PATH_MODE ? "/compare/" : "#compare-") + `${slugOf(a)}-vs-${slugOf(b)}`;
 
-  function readHash() {
-    const h = location.hash.replace("#", "");
-    state.mode = "home";
-    let m = h.match(/^model-([a-z0-9]+)$/);
-    if (m && byId(m[1])) { state.mode = "one"; state.one = m[1]; return; }
-    m = h.match(/^compare-([a-z0-9]+)-([a-z0-9]+)$/);
-    if (m && byId(m[1]) && byId(m[2]) && m[1] !== m[2]) { state.mode = "two"; state.a = m[1]; state.b = m[2]; }
+  function parseRoute(r) {
+    r = decodeURIComponent(r).replace(/^\/+|\/+$/g, "").toLowerCase();
+    let m = r.match(/^(?:compare[-/])(.+)-vs-(.+)$/) || r.match(/^compare-([a-z0-9]+)-([a-z0-9]+)$/);
+    if (m) {
+      const a = byKey(m[1]), b = byKey(m[2]);
+      if (a && b && a !== b) return { mode: "two", a: a.id, b: b.id };
+    }
+    const one = byKey(r.replace(/^model[-/]/, ""));
+    if (r && one) return { mode: "one", one: one.id };
+    return { mode: "home" };
   }
-  function writeHash() {
-    const h = state.mode === "home" ? location.pathname + location.search : state.mode === "one" ? `#model-${state.one}` : `#compare-${state.a}-${state.b}`;
-    try { history.replaceState(null, "", h); } catch (e) { /* sandboxed: ignore */ }
+  function readRoute() {
+    const h = location.hash.replace("#", "");
+    const fromHash = h ? parseRoute(h) : { mode: "home" };
+    const route = fromHash.mode !== "home" || !PATH_MODE ? fromHash : parseRoute(location.pathname);
+    Object.assign(state, route);
+  }
+  function routeUrl() {
+    if (state.mode === "one") return hrefFor(byId(state.one));
+    if (state.mode === "two") return pairHref(byId(state.a), byId(state.b));
+    return PATH_MODE ? "/" : location.pathname + location.search;
+  }
+  function writeRoute(push) {
+    const url = routeUrl();
+    const now = PATH_MODE ? location.pathname + location.hash : location.hash || location.pathname + location.search;
+    try {
+      if (push && url !== now) history.pushState(null, "", url);
+      else history.replaceState(null, "", url);
+    } catch (e) { /* sandboxed: ignore */ }
   }
 
   /* ---------- Builders ---------- */
@@ -8685,6 +8789,57 @@ window.STACKS = {
         .map((t) => `<div class="trick"><div class="mn">${esc(t.name)}${src(t.s)}</div><div class="mt">${esc(t.t)}</div></div>`)
         .join("")}</div></div>`)
       .join("");
+  }
+
+  /* ---------- Ablations: published controlled comparisons ---------- */
+  const supNum = (n) => String(n).split("").map((d) => "⁰¹²³⁴⁵⁶⁷⁸⁹"[+d] || d).join("");
+  function ablationChart(c) {
+    const W = 640, H = 300, L = 52, R = 14, T = 12, B = 44;
+    const lg = Math.log10, ln = Math.log;
+    const xs = c.series.flatMap((s) => s.pts.map((p) => lg(p[0])));
+    const x0 = Math.min(...xs, lg(c.xTicks[0])) - 0.12, x1 = Math.max(...xs, lg(c.xTicks[c.xTicks.length - 1])) + 0.06;
+    const y0 = ln(c.yTicks[0]) - 0.02, y1 = ln(c.yTicks[c.yTicks.length - 1]) + 0.02;
+    const X = (v) => L + ((lg(v) - x0) / (x1 - x0)) * (W - L - R);
+    const Y = (v) => T + (1 - (ln(v) - y0) / (y1 - y0)) * (H - T - B);
+    const steps = c.series.filter((s) => s.style === "step");
+    const color = (s) => s.style === "base" ? "var(--delta)" : s.style === "final" ? "var(--accent)" : s.style === "dropped" ? "var(--bar)"
+      : `color-mix(in srgb, var(--accent) ${Math.round(12 + (48 * steps.indexOf(s)) / Math.max(steps.length - 1, 1))}%, var(--bar))`;
+    const out = [`<svg viewBox="0 0 ${W} ${H}" class="ab-svg" role="img" aria-label="${esc(c.y)} against ${esc(c.x)}">`];
+    c.xTicks.forEach((v) => out.push(`<line x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${H - B}" class="ab-grid"/><text x="${X(v)}" y="${H - B + 16}" class="ab-tick" text-anchor="middle">10${supNum(Math.round(lg(v)))}</text>`));
+    c.yTicks.forEach((v) => out.push(`<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" class="ab-grid"/><text x="${L - 6}" y="${Y(v) + 3.5}" class="ab-tick" text-anchor="end">${v.toFixed(1)}</text>`));
+    out.push(`<line x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}" class="ab-axis"/><line x1="${L}" x2="${L}" y1="${T}" y2="${H - B}" class="ab-axis"/>`);
+    out.push(`<text x="${(L + W - R) / 2}" y="${H - 8}" class="ab-lab" text-anchor="middle">${esc(c.x)}</text>`);
+    out.push(`<text x="12" y="${(T + H - B) / 2}" class="ab-lab" text-anchor="middle" transform="rotate(-90 12 ${(T + H - B) / 2})">${esc(c.y)}</text>`);
+    const order = [...c.series].sort((a, b) => ({ dropped: 0, step: 1, base: 2, final: 3 }[a.style] - { dropped: 0, step: 1, base: 2, final: 3 }[b.style]));
+    order.forEach((s) => {
+      const d = s.pts.map((p, i) => `${i ? "L" : "M"}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join("");
+      const wide = s.style === "final" || s.style === "base";
+      out.push(`<path d="${d}" fill="none" stroke="${color(s)}" stroke-width="${wide ? 2.6 : 1.7}" ${s.style === "dropped" ? 'stroke-dasharray="4 3"' : ""} stroke-linejoin="round"/>`);
+      s.pts.forEach((p) => out.push(`<circle cx="${X(p[0]).toFixed(1)}" cy="${Y(p[1]).toFixed(1)}" r="${wide ? 3.4 : 2.6}" fill="${color(s)}" stroke="var(--surface)" stroke-width="1"><title>${esc(s.name)}: ${p[0].toExponential(2)} FLOPs, loss ${p[1]}</title></circle>`));
+    });
+    out.push("</svg>");
+    const legend = c.series.map((s) => `<span class="lg"><span class="ab-sw${s.style === "dropped" ? " dash" : ""}" style="--c:${color(s)}"></span>${esc(s.name)}</span>`).join("");
+    return `<div class="ab-chart">${out.join("")}</div><div class="legend-row tight">${legend}</div>`;
+  }
+  function ablationsBlock(m) {
+    return (m.ablations || []).map((a) => {
+      const unit = a.unit || "";
+      const all = a.rows.flatMap((r) => r.v).filter((v) => v > 1);
+      const top = Math.log(Math.max(...all, 1.0001));
+      const cell = (v, ext) => {
+        const k = v > 1 ? Math.min(Math.log(v) / top, 1) : 0;
+        const pct = v > 1 ? Math.round(8 + 52 * k) : 0;
+        const style = pct ? ` style="background:color-mix(in srgb, var(--accent) ${pct}%, transparent)${pct > 38 ? ";color:var(--heat-hi-ink)" : ""}"` : "";
+        return `<td class="ab-v${v < 1 ? " lo" : ""}${ext ? " ext" : ""}"${style}${ext ? ' title="Extrapolated past the end of a curve"' : ""}>${v.toFixed(2)}${unit}</td>`;
+      };
+      const row = (r, foot) => `<tr class="${r.verdict === "rejected" ? "ab-rej" : ""}"><th scope="row">${esc(r.k)}</th><td class="ab-t">${esc(r.t)}${r.note ? `<span class="ab-note">${esc(r.note)}</span>` : ""}</td><td class="ab-vs">${esc(r.vs || "")}</td>${r.v.map((v, i) => foot ? `<td class="ab-v ab-tot">${v.toFixed(1)}${unit}</td>` : cell(v, (r.ext || []).includes(i))).join("")}<td>${r.verdict ? `<span class="ab-verdict ${r.verdict}">${r.verdict === "rejected" ? "Rejected" : "Kept"}</span>` : ""}</td></tr>`;
+      return `<div class="panel pad ab"><h3>${esc(a.title)}${src(a.s)}</h3><p class="ab-setup">${esc(a.setup)}</p>
+        ${a.chart ? ablationChart(a.chart) : ""}
+        <div class="scroll"><table class="grid ab-table"><thead><tr><th scope="col">Step</th><th scope="col">Change</th><th scope="col">Against</th>${a.cols.map((c) => `<th scope="col" class="ab-v">${esc(c)}</th>`).join("")}<th scope="col">Result</th></tr></thead>
+        <tbody>${a.rows.map((r) => row(r)).join("")}</tbody>${a.total ? `<tfoot>${row(a.total, true)}</tfoot>` : ""}</table></div>
+        <p class="chart-note">Shading grows with the saving; grey values below 1${unit} are losses; italic cells are extrapolated.</p>
+        ${facts(a.notes)}</div>`;
+    }).join("");
   }
   const CAT_ORDER = [...new Set(window.BENCHMARKS.map((b) => b.cat))];
   const BENCH = window.BENCHMARKS.map((b, i) => ({ b, i }))
@@ -9233,6 +9388,7 @@ window.STACKS = {
       sec("sec-sft", "Fine-tuning", "Supervised stages, data sources and teacher models.", refsLine(m, "sft") + phaseOne(m, "sft")),
       sec("sec-rl", "Reinforcement learning", "Scale, environments, algorithms and new methods.", refsLine(m, "rl") + phaseOne(m, "rl")),
       sec("sec-tricks", "Training tricks", "Specific choices in optimization, numerics, data, distillation and RL that the report, blog or code make explicit.", refsLine(m, "tricks") + `<div class="panel pad stackv">${tricksBlock(m, false)}</div>`),
+      m.ablations && m.ablations.length ? sec("sec-ablations", "Ablations", "Controlled comparisons the lab published: one change at a time, measured on the lab's own setup.", refsLine(m, "ablations") + ablationsBlock(m)) : "",
       sec("sec-bench", "Benchmarks", "Post-trained scores with the evaluation setting next to each number.", refsLine(m, "bench") + benchOne(m)),
       sec("sec-sources", "Sources", "Grouped in priority order. Each fact on this page cites the highest group that states it.", `<div class="panel pad srcgrid">${sourcesBlock(m)}</div>`),
     ].join("");
@@ -9260,6 +9416,7 @@ window.STACKS = {
       sec("sec-sft", "Fine-tuning", "", refs2("sft") + pc("sft")),
       sec("sec-rl", "Reinforcement learning", "", refs2("rl") + pc("rl")),
       sec("sec-tricks", "Training tricks", "", refs2("tricks") + `<div class="cols" style="--n:2">${ms.map((m) => `<article class="panel col"><h3>${esc(m.name)}</h3>${tricksBlock(m, true)}</article>`).join("")}</div>`),
+      ms.some((m) => m.ablations && m.ablations.length) ? sec("sec-ablations", "Ablations", "Controlled comparisons each lab published, on its own setup.", ms.map((m) => m.ablations && m.ablations.length ? `<h3 class="mini first">${esc(m.name)}</h3>${refsLine(m, "ablations")}${ablationsBlock(m)}` : `<h3 class="mini first">${esc(m.name)}</h3><p class="chart-note">No published ablations recorded.</p>`).join("")) : "",
       sec("sec-bench", "Benchmarks", "Scores as each lab reported them; harnesses often differ or are unspecified, so read gaps as indicative. ▲ marks the higher reported score. Rows marked settings differ use different protocols (for example with vs without tools), so no winner is shown.", `<div id="bench-two">${benchTwo(a, b)}</div>`),
       sec("sec-sources", "Sources", "Grouped in priority order.", `<div class="cols" style="--n:2">${ms.map((m) => `<article class="panel col"><h3>${esc(m.name)}</h3>${sourcesBlock(m)}</article>`).join("")}</div>`),
     ].join("");
@@ -9319,8 +9476,8 @@ window.STACKS = {
       .map((m) => {
         const c = Math.min(1048576, ctxMax(m));
         const kv = kvFor(m, c);
-        return `<tr class="grow" data-open="${m.id}" tabindex="0" aria-label="Open ${esc(m.name)}">
-          <th scope="row"><span class="gname">${esc(m.name)}</span><span class="glab">${esc(m.org)}</span></th>
+        return `<tr class="grow" data-open="${m.id}">
+          <th scope="row"><a class="gname" href="${esc(hrefFor(m))}" data-open="${m.id}">${esc(m.name)}</a><span class="glab">${esc(m.org)}</span></th>
           <td class="num">${esc(m.glance.date)}</td>
           <td class="pcell">${paramsBar(m)}</td>
           <td class="num">${m.layers.length}</td>
@@ -9342,8 +9499,8 @@ window.STACKS = {
   function fingerprints() {
     const maxDepth = Math.max(...MODELS.map((m) => m.layers.length));
     return `<div class="panel pad fp">${layerLegend()}${MODELS.map(
-      (m) => `<div class="fp-row" data-open="${m.id}" tabindex="0" aria-label="Open ${esc(m.name)}">
-        <div class="fp-label"><span class="gname">${esc(shortName(m))}</span><span class="glab">${m.layers.length} layers · ${esc(m.glance.attn)}</span></div>
+      (m) => `<div class="fp-row" data-open="${m.id}">
+        <div class="fp-label"><a class="gname" href="${esc(hrefFor(m))}" data-open="${m.id}">${esc(shortName(m))}</a><span class="glab">${m.layers.length} layers · ${esc(m.glance.attn)}</span></div>
         <div class="fp-strip">${strip(m, maxDepth)}</div>
         <p class="fp-sig">${esc(m.glance.sig)}</p>
       </div>`
@@ -9352,7 +9509,7 @@ window.STACKS = {
 
   function heatmap() {
     const rows = HEAT_ROWS.map((n) => BENCH.find((b) => b.name === n)).filter(Boolean);
-    const head = `<tr><th scope="col">Benchmark</th>${MODELS.map((m) => `<th scope="col"><button type="button" class="linkbtn" data-open="${m.id}">${esc(shortName(m))}</button></th>`).join("")}</tr>`;
+    const head = `<tr><th scope="col">Benchmark</th>${MODELS.map((m) => `<th scope="col"><a class="linkbtn" href="${esc(hrefFor(m))}" data-open="${m.id}">${esc(shortName(m))}</a></th>`).join("")}</tr>`;
     const body = rows
       .map((b) => {
         const vals = MODELS.map((m) => b.scores[m.id]?.v).filter((v) => typeof v === "number");
@@ -9383,7 +9540,7 @@ window.STACKS = {
           <div class="hero-text">
             <h1>Frontier LLM Catalogue</h1>
             <p class="lede">The current open-weight models, read down to the config file: layer layouts, attention and routing, training stages and data, RL methods, training tricks and benchmarks. Each fact carries a mark for its source, and the lab's technical report is used first.</p>
-            <p class="edition"><span><b>${MODELS.length}</b> models</span><span><b>${labs}</b> labs</span><span><b>${reports}</b> with a technical report</span><span><b>${window.BENCHMARKS.length}</b> benchmarks</span><span><b>${factCount}</b> sourced facts</span><span>Compiled 6 Nov 2026</span></p>
+            <p class="edition"><span><b>${MODELS.length}</b> models</span><span><b>${labs}</b> labs</span><span><b>${reports}</b> with a technical report</span><span><b>${window.BENCHMARKS.length}</b> benchmarks</span><span><b>${factCount}</b> sourced facts</span><span>Compiled 7 Nov 2026</span></p>
             <div class="hero-cta">
               <label class="sr-only" for="hero-pick">Open a model</label>
               <select id="hero-pick" class="pick-select big"><option value="" selected disabled>Open a model…</option>${modelOptions(null, null)}</select>
@@ -9426,13 +9583,14 @@ window.STACKS = {
     $("#rail-title").textContent = state.mode === "one" ? byId(state.one).name : "";
   }
 
-  function render(scrollTop) {
+  function render(scrollTop, replace) {
     renderPicker();
     const v = $("#view");
     v.innerHTML = state.mode === "home" ? viewHome() : state.mode === "one" ? viewOne(byId(state.one)) : viewTwo(byId(state.a), byId(state.b));
     v.dataset.mode = state.mode;
+    document.querySelectorAll("#rail-nav [data-go]").forEach((b) => { b.hidden = state.mode !== "home" && !document.getElementById(b.dataset.go); });
     document.title = state.mode === "home" ? "Frontier LLM Catalogue" : state.mode === "one" ? `${byId(state.one).name} · Frontier LLM Catalogue` : `${shortName(byId(state.a))} vs ${shortName(byId(state.b))} · Frontier LLM Catalogue`;
-    writeHash();
+    writeRoute(!replace);
     if (scrollTop) window.scrollTo({ top: 0 });
   }
 
@@ -9479,18 +9637,18 @@ window.STACKS = {
       }
       if (e.target.id === "hero-compare") { openCompare(); return; }
       const o = e.target.closest("[data-open]");
-      if (o) openModel(o.dataset.open);
-    });
-    v.addEventListener("keydown", (e) => {
-      if (e.key !== "Enter" && e.key !== " ") return;
-      const o = e.target.closest && e.target.closest("tr[data-open], .fp-row[data-open]");
-      if (o) { e.preventDefault(); openModel(o.dataset.open); }
+      if (!o) return;
+      // Model names are real links: let the browser handle new-tab and copy-link gestures.
+      if (e.target.closest("a[href]") && (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0)) return;
+      e.preventDefault();
+      openModel(o.dataset.open);
     });
     v.addEventListener("change", (e) => {
       if (e.target.id === "bench-shared") { benchShared = e.target.checked; $("#bench-two").innerHTML = benchTwo(byId(state.a), byId(state.b)); }
       if (e.target.id === "hero-pick" && e.target.value) openModel(e.target.value);
     });
-    window.addEventListener("hashchange", () => { readHash(); render(true); });
+    window.addEventListener("hashchange", () => { readRoute(); render(true, true); });
+    window.addEventListener("popstate", () => { readRoute(); render(true, true); });
   }
 
   function initTooltip() {
@@ -9537,9 +9695,9 @@ window.STACKS = {
     `<span>Source key, in priority order:</span>` +
     Object.entries(KINDS).map(([k, v]) => `<span class="lg"><span class="src src-${k}" style="margin:0">${k}</span>${esc(v.long)}</span>`).join("");
 
-  readHash();
+  readRoute();
   bind();
-  render();
+  render(false, true);
   initTooltip();
   initRail();
 })();

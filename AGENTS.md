@@ -28,8 +28,10 @@ Rules:
 
 - Facts are `{ v | t, s }` objects in `data/models.js`. `s` is a source code string from the table above.
 - Benchmarks: each model's `benchSource` says where its scores come from and at what tier. Put the evaluation setting for each score in `n`. Set `cmp: false` on a row when the labs' protocols differ (for example with tools versus without).
-- Each model has `refs` (per-section source links: `arch`, `pretrain`, `sft`, `rl`, `tricks`, `bench`) and `tricks` (training tricks with `cat`, `name`, `t`, `s`). Every section shows its refs under the heading, so add the report section and blog post a section draws on.
+- Each model has `refs` (per-section source links: `arch`, `pretrain`, `sft`, `rl`, `tricks`, `ablations`, `bench`) and `tricks` (training tricks with `cat`, `name`, `t`, `s`). Every section shows its refs under the heading, so add the report section and blog post a section draws on.
 - Read the transformers `modular_<model>.py` / `modeling_<model>.py` (and any custom `modeling_*.py` in the model repo) for every model. Record anything that differs from a standard Llama-style block: norms, residual form, gating, router math, numerics kept in FP32, positional scheme, logit caps.
+- `ablations` (optional) holds controlled comparisons the lab published: one change at a time on the lab's own setup. Each study has `title`, `s`, `setup` (what was held fixed and what a cell means), `cols`, `unit`, `rows` (`k`, `t`, `vs`, `v`, optional `ext` indexes for extrapolated cells, `verdict` kept/rejected, `note`), an optional `total` row, an optional `chart` (log-log `series` of `[x, y]` points) and `notes`. The page adds an Ablations section only when a model has one. When a value is read off a chart, say how in `setup` or a note and tag it `D` alongside the chart's source.
+- Each model's URL is `/<slug>`, with the slug made from its name. Set `slug` on the model only when the name makes a poor URL (for example `qwen38` uses `qwen3.8-max`). Keep slugs stable once published, since people share them.
 - Block diagrams live in `data/diagrams.js` (one per model, drawn as inline SVG by `diagramFigure` in `assets/app.js`). Build them from the transformers model code. Mark a step `n: true` only when it departs from a standard Llama-style block, and keep labels short (the renderer squeezes text that overflows its box). When a model is an update of another model on the page, set `base` on its diagram to that model's name and tag each step that differs from the base with `c: "new"` or `c: "changed"`; the renderer outlines those steps and adds a legend entry.
 - When layers play different roles across the network (for example DeepSeek-V4.1-Flash: encoder vs decoder, CSA2 Full / Reindex / Reuse, Engram layers), add a whole-network entry to `window.STACKS` in `data/diagrams.js`. Derive each layer's role from config.json fields, not by hand. The page then shows a "Layer stack" figure above the one-layer diagram.
 - Layer layouts come from tier 3 code or config (`layer_types`, `layers_block_type`, or the reference code). The `layersNote` names the field used.
@@ -38,6 +40,6 @@ Rules:
 
 1. Edit `data/models.js`.
 2. Run `python3 scripts/build.py`.
-3. Check `dist/index.html` in a browser at desktop and phone widths, in light and dark mode.
+3. Check the page in a browser at desktop and phone widths: `python3 scripts/serve.py` serves `dist/` at http://localhost:8765 and handles model paths.
 4. Republish `build/artifact.html` to the existing artifact URL in the memory or README.
 5. Commit the source and `dist/index.html` together. `dist/` is the folder Cloudflare Pages serves.

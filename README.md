@@ -2,13 +2,15 @@
 
 A standalone static site that compares frontier open-weight LLMs at config-file depth: layer layout, attention pattern, MoE routing, token budgets per training stage, data mixes, RL methods and benchmarks with their evaluation settings.
 
-Models covered (32): Muse Spark Open and Muse Glimmer 30B (Meta), Inkling and Inkling-Small (Thinking Machines Lab), DeepSeek-V4.1-Flash, DeepSeek-V4-Pro and DeepSeek-V4-Flash, Reflection Beam 1.0, Nemotron 3.5 Super, Nemotron 3.5 Lightning and Nemotron 3 Ultra (NVIDIA), Kimi K3 (Moonshot AI), GLM-5.3 and GLM-5.3-Flash (Z.ai), MiMo-V2.6-Pro and MiMo-V2.6-Flash (Xiaomi), Qwen3.8-Max, Qwen3.8-Flash-Next and Qwen3.8-27B (Alibaba), MiniMax M3 and M3.1-Flash, Step 5 Preview (StepFun), Hy4-preview (Tencent), Motif 3 (Motif Technologies), Laguna S 2.1 (Poolside), LFM2.5-8B-A1B and LFM3-1.7B (Liquid AI), Gemma 4 31B (Google DeepMind), gpt-oss-120b (OpenAI), Olmo 3 32B Think (Ai2), SmolLM3-3B (Hugging Face) and Mistral Large 4 (Mistral AI).
+Models covered (34): Muse Spark Open and Muse Glimmer 30B (Meta), Inkling and Inkling-Small (Thinking Machines Lab), DeepSeek-V4.1-Flash, DeepSeek-V4-Pro and DeepSeek-V4-Flash, Reflection Beam 1.0, Nemotron 3.5 Super, Nemotron 3.5 Lightning and Nemotron 3 Ultra (NVIDIA), Kimi K3 and Kimi K3.1 Pro (Moonshot AI), GLM-5.3 and GLM-5.3-Flash (Z.ai), MiMo-V2.6-Pro and MiMo-V2.6-Flash (Xiaomi), Qwen3.8-Max, Qwen3.8-Flash-Next and Qwen3.8-27B (Alibaba), MiniMax M3 and M3.1-Flash, Step 5 Preview (StepFun), Hy4-preview (Tencent), Motif 3 (Motif Technologies), Laguna S 2.1 (Poolside), LFM2.5-8B-A1B and LFM3-1.7B (Liquid AI), Gemma 4 31B (Google DeepMind), gpt-oss-120b (OpenAI), Olmo 3 32B Think (Ai2), Ripple-65B Preview (Ricursive Intelligence), SmolLM3-3B (Hugging Face) and Mistral Large 4 (Mistral AI).
 
 ## Views
 
-- **Overview** (the default, with no model selected): a sortable table of every model (params, layers, attention, experts, context, cache at 1M, pretraining tokens, sources and license), architecture fingerprints on a shared depth scale, a benchmark heatmap and memory per sequence. Click any row to open that model. Link: the bare page URL with no hash.
-- **One model**: pick a model and read its full dossier top to bottom: overview, layer diagram, spec sheet, memory per sequence, pretraining stages and mixes, fine-tuning, RL methods, benchmarks with settings, and sources. Link: `#model-<id>` (e.g. `#model-beam`).
-- **Compare two**: choose Model A and Model B (at most two). Every section is side by side. The benchmark table shows A − B where settings are comparable. Link: `#compare-<a>-<b>` (e.g. `#compare-muse-beam`).
+- **Overview** (the default, with no model selected): a sortable table of every model (params, layers, attention, experts, context, cache at 1M, pretraining tokens, sources and license), architecture fingerprints on a shared depth scale, a benchmark heatmap and memory per sequence. Click any row to open that model. Link: `/`.
+- **One model**: pick a model and read its full dossier top to bottom: overview, layer diagram, spec sheet, memory per sequence, pretraining stages and mixes, fine-tuning, RL methods, training tricks, published ablations (when the lab gives any), benchmarks with settings, and sources. Link: `/<slug>`, where the slug comes from the model name (e.g. `/reflection-beam-1.0`, `/ripple-65b-preview`). A model's id also works (`/beam`) and redirects to the slug.
+- **Compare two**: choose Model A and Model B (at most two). Every section is side by side. The benchmark table shows A − B where settings are comparable. Link: `/compare/<a>-vs-<b>` (e.g. `/compare/muse-spark-open-vs-reflection-beam-1.0`).
+
+Old hash links (`#model-beam`, `#compare-muse-beam`) still open the right view and switch to the path. Inside the Claude artifact or a `file://` page, where the path can't change, the same routes go in the hash (`#model-<slug>`).
 
 Model ids: `muse`, `glimmer`, `inkling`, `inklingsm`, `dsv41`, `dsv4pro`, `dsv4flash`, `beam`, `super`, `lightning`, `ultra3`, `kimik3`, `kimik31`, `glm53`, `glm53f`, `mimo26`, `mimo26f`, `qwen38`, `qwen38fn`, `qwen3827`, `minimaxm3`, `minimaxm31f`, `step5`, `hy4`, `motif3`, `laguna`, `lfm25`, `lfm3`, `gemma4`, `gptoss`, `olmo3`, `ripple`, `smollm3`, `ml4`. Pick the model from the dropdown (grouped by lab).
 
@@ -27,17 +29,17 @@ build/artifact.html same page without the html/head/body wrapper (git-ignored)
 
 ## View
 
-Open `dist/index.html` in a browser. To serve the source version instead:
+Serve `dist/` with the bundled server, which returns `index.html` for paths like `/ripple-65b-preview` the way the host does:
 
 ```bash
-python3 -m http.server 8000
+python3 scripts/serve.py
 ```
 
-Then open http://localhost:8000.
+Then open http://localhost:8765. Opening `dist/index.html` straight from disk also works, with hash links.
 
 ## Deploy (Cloudflare Pages)
 
-The site is one self-contained file, `dist/index.html`, with no external requests. It is committed, so Pages needs no build step.
+The site is one self-contained file, `dist/index.html`, with no external requests. It is committed, so Pages needs no build step. Model pages are paths with no file behind them (`/ripple-65b-preview`). Pages serves `index.html` for those as long as `dist/` has no top-level `404.html`, so don't add one.
 
 1. Push the repo to GitHub.
 2. In Cloudflare, go to Workers & Pages → Create → Pages → Connect to Git, and pick the repo.

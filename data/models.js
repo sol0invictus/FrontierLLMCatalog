@@ -2412,6 +2412,7 @@ window.MODELS = [
   /* ------------------------------------------------------------------ */
   {
     id: "qwen38",
+    slug: "qwen3.8-max",
     glance: {"date": "2026-08-08", "attn": "DeltaNet + attn · 3:1", "moe": "512 → 10 + 1 shared", "tokens": "n/d", "report": "Blog + card", "sig": "Open weights of a Max-class model: 2.4T Qwen3.5-style hybrid"},
     benchSource: { s: "C", t: "Hugging Face model card (tier 3), column 'Qwen3.8-Max'. The blog announces the model but the scores are taken from the card. Coding runs mostly in Claude Code with a 256K window; Terminal-Bench 2.1 is avg@10 with a 5 h timeout." },
     name: "Qwen3.8-Max (2.4T-A95B)",
@@ -4990,6 +4991,10 @@ window.MODELS = [
         { label: "modeling_ricursive.py", url: "https://huggingface.co/ricursiveAI/Ripple-65B-Preview/blob/main/modeling_ricursive.py", s: "C" },
         { label: "Elie Bakouch's infographic", url: "https://x.com/eliebakouch/status/2118111893160435742/photo/1", s: "X" },
       ],
+      ablations: [
+        { label: "Blog: Careful Model Laddering (chart)", url: "https://www.ricursive.com/ripple", s: "B" },
+        { label: "Elie Bakouch's infographic (step table)", url: "https://x.com/eliebakouch/status/2118111893160435742/photo/1", s: "X" },
+      ],
       bench: [
         { label: "Blog: Terminal-Bench 2.1", url: "https://www.ricursive.com/ripple", s: "B" },
         { label: "Model card: Instruct and Base benchmark tables", url: "https://huggingface.co/ricursiveAI/Ripple-65B-Preview", s: "C" },
@@ -5003,10 +5008,51 @@ window.MODELS = [
       { cat: "Long context", name: "Global NoPE with a final LR cooldown", t: "Ladder v1.5 removed RoPE from global layers and added a learning-rate cooldown to zero at the end of pretraining.", s: "B" },
       { cat: "Scaling", name: "StepFun scaling laws and a smooth ladder", t: "Ladder v1.0 set batch size and learning rate with StepFun's scaling laws; v1.1 scaled width and depth smoothly across ladder sizes. The hero run ramped batch from 1,408 to 3,072 sequences of 8K.", s: "B+C" },
       { cat: "Scaling", name: "Rejected: 2-stream mHC", t: "Manifold-constrained hyper-connections (ladder v1.4) helped at small scale but not at 4B, so they were dropped.", s: "B" },
-      { cat: "Data", name: "Code-heavy own data", t: "The final ladder step swapped in Ricursive's own pretraining set with much more code. All steps together cut the compute needed for a given code loss (dolma_stack) by up to 16× at 4B versus the Olmo 3 ladder; the card says up to 55× for the full run. The X infographic reads the data swap alone as 4.5–5.4× at each size.", s: "B+C+X" },
+      { cat: "Data", name: "Code-heavy own data", t: "The final ladder step swapped in Ricursive's own pretraining set with much more code. All steps together cut the compute needed for a given code loss (dolma_stack) by up to 16× at 4B versus the Olmo 3 ladder; the card says up to 55× for the full run. The blog's ladder chart puts the data swap alone at 4.5–5.4× at each size (see Ablations).", s: "B+C+D" },
       { cat: "Data", name: "Synthetic data kept out of pretraining", t: "Pretraining uses mostly natural data with minimal synthetic data. Synthetic data goes into mid-training so its recipe could change without blocking pretraining. No post-training data was bought.", s: "B+C" },
       { cat: "RL", name: "Tuned RL tasks", t: "Mixed RL uses truncated importance sampling, score centering and a linear length penalty on long-horizon synthetic environments. Harder tasks were added as the model improved.", s: "B" },
       { cat: "Inference", name: "DFlash2 block drafter", t: "A 4.04B, 5-layer drafter (4 SWA layers with a 4,096 window, then a NoPE global layer) proposes 16 tokens at once, using dynamic convolutions and a top-32 candidate selector. It reads hidden states from 5 target layers and reuses Ripple's embedding and head. Served through SGLang's DFLASH mode; 250 tok/s on 2 × B200 at batch 8.", s: "B+C" },
+    ],
+    ablations: [
+      {
+        title: "Pretraining ladder: what each change bought",
+        s: "B+D",
+        setup: "Ricursive started from Olmo 3's model ladder and changed one thing per version, training each version at five or six sizes. Each cell is how many times less compute the version needs than the one before it to reach the same code loss (dolma_stack cross-entropy) at that size. Values come from the plotted points of the blog's chart, which sits in the page as an SVG, so they are exact to the plot. The size labels are the X infographic's, and they match compute ≈ 6 · N · 20N.",
+        cols: ["0.2B", "0.6B", "1.1B", "2B", "4B"],
+        unit: "×",
+        rows: [
+          { k: "v1.0", t: "StepFun batch-size and learning-rate scaling laws", vs: "Olmo 3", v: [1.59, 1.02, 1.36, 1.59, 2.04], ext: [0, 4], verdict: "kept", note: "Uses Olmo 3's model sizes; read at the v1.1 grid's compute" },
+          { k: "v1.1", t: "New ladder that scales width and depth smoothly", vs: "v1.0", v: [0.97, 1.11, 1.03, 1.11, 1.10], ext: [0, 4], verdict: "kept" },
+          { k: "v1.2", t: "Post-norm → pre + post norm", vs: "v1.1", v: [0.97, 1.04, 1.14, 1.13, 1.17], ext: [0, 4], verdict: "kept", note: "Blog: neutral at small scale, better from 4B" },
+          { k: "v1.3", t: "Sigmoid gated attention", vs: "v1.2", v: [1.11, 1.13, 1.07, 1.04, 1.08], ext: [4], verdict: "kept" },
+          { k: "v1.4", t: "2-stream mHC (hyper-connections)", vs: "v1.3", v: [1.22, 1.17, 1.12, 1.27, 1.08], ext: [4], verdict: "rejected", note: "Blog: did not improve at 4B, so v1.5 builds on v1.3" },
+          { k: "v1.5", t: "Global NoPE and a final LR cooldown to zero", vs: "v1.3", v: [1.08, 1.04, 1.12, 1.21, 1.08], ext: [4], verdict: "kept" },
+          { k: "v1.6", t: "Value residuals", vs: "v1.5", v: [1.28, 1.21, 1.14, 1.13, 1.09], ext: [4], verdict: "kept" },
+          { k: "Final", t: "Ricursive's own pretraining data, with much more code", vs: "v1.6", v: [4.76, 4.53, 4.70, 5.43, 5.06], ext: [3, 4], verdict: "kept" },
+        ],
+        total: { k: "Together", t: "Product of the kept steps (all but v1.4)", vs: "Olmo 3", v: [10.9, 7.7, 10.3, 15.5, 16.8] },
+        chart: {
+          x: "Training compute (FLOPs)", y: "Code loss (dolma_stack CE)",
+          xTicks: [1e19, 1e20, 1e21, 1e22], yTicks: [0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0],
+          series: [
+            { name: "Olmo 3", style: "base", pts: [[4.35e+18, 2.010], [1.65e+19, 1.680], [3.6e+19, 1.560], [6.9e+19, 1.490], [1.96e+20, 1.390], [1.21e+21, 1.240], [5.69e+21, 1.140]] },
+            { name: "v1.0", style: "step", pts: [[4.35e+18, 1.890], [1.65e+19, 1.674], [3.6e+19, 1.560], [6.9e+19, 1.475], [1.96e+20, 1.355], [1.21e+21, 1.199]] },
+            { name: "v1.1", style: "step", pts: [[4.28e+18, 1.898], [3.96e+19, 1.533], [1.38e+20, 1.391], [4.26e+20, 1.277], [1.78e+21, 1.161]] },
+            { name: "v1.2", style: "step", pts: [[4.28e+18, 1.903], [3.96e+19, 1.528], [1.38e+20, 1.377], [4.26e+20, 1.267], [1.78e+21, 1.149]] },
+            { name: "v1.3", style: "step", pts: [[4.58e+18, 1.871], [4.41e+19, 1.499], [1.52e+20, 1.360], [4.81e+20, 1.253], [2.02e+21, 1.133]] },
+            { name: "v1.4 (rejected)", style: "dropped", pts: [[4.58e+18, 1.835], [4.41e+19, 1.481], [1.52e+20, 1.349], [4.81e+20, 1.232], [2.02e+21, 1.127]] },
+            { name: "v1.5", style: "step", pts: [[4.58e+18, 1.857], [4.41e+19, 1.494], [1.52e+20, 1.349], [4.81e+20, 1.236], [2.02e+21, 1.127]] },
+            { name: "v1.6", style: "step", pts: [[4.58e+18, 1.814], [4.41e+19, 1.471], [1.52e+20, 1.336], [4.81e+20, 1.226], [2.02e+21, 1.121]] },
+            { name: "Final", style: "final", pts: [[4.58e+18, 1.570], [4.41e+19, 1.309], [1.52e+20, 1.196], [4.81e+20, 1.103], [2.02e+21, 1.013], [8.33e+21, 0.927]] },
+          ],
+        },
+        notes: [
+          { t: "How a cell is computed: take the version's loss at that size, find the compute at which the earlier version reaches the same loss (straight lines between plotted points, in log compute against log loss), and divide by the version's own compute. Italic cells needed a curve extended past its last point. The X infographic's table, read the same way, agrees to within about 0.05 in every cell, and its totals (11×, 8×, 10×, 16×, 17×) match the product row.", s: "X+D" },
+          { t: "The blog's headline is 16× less compute for the same code loss at 4B. The arrow on its chart, from Olmo 3's largest run to the final ladder, spans 17×, and reading the points gives 19×. The model card says the gap grows to 55× for the full 65B run, which is past the end of both curves.", s: "B+C+D" },
+          { t: "Measured directly, the final ladder needs 7.4× (0.2B), 11.6× (0.6B) and 15.5× (1.1B) less compute than Olmo 3 for the same loss. At 2B and above the Olmo 3 curve has to be extended, giving 22–31×. The final ladder's slope is steeper than Olmo 3's, so the gap widens with scale, as the blog notes.", s: "B+D" },
+          { t: "Steps v1.1–v1.6 each save at most 1.3×, and v1.0's scaling laws up to 2×. Together v1.0–v1.6 save 1.7–3.3× depending on size. The data change alone saves 4.5–5.4× at every size.", s: "B+D" },
+        ],
+      },
     ],
     pretrain: {
       headline: "Pretrained from scratch on 12T text tokens, mostly English and code, at 8K sequence length. The released base checkpoint is pretrain-only.",
@@ -5026,7 +5072,6 @@ window.MODELS = [
       mixes: [],
       notes: [
         { t: "Each stage's steps × batch × sequence length matches its token count (for example 8,000 × 384 × 65,536 = 201B).", s: "D" },
-        { t: "Ladder gains per step at 4B, as compute saved versus the step before (X infographic, read from Ricursive's chart): v1.0 StepFun batch + LR 2.1×, v1.1 depth + width 1.10×, v1.2 pre + post norm 1.17×, v1.3 gated attention 1.08×, v1.5 global NoPE + LR to zero 1.08×, v1.6 value residuals 1.09×, final data 5.1×. Rejected v1.4 mHC: 1.08×. All steps together: 11× at 0.2B, 8× at 0.6B, 10× at 1.1B, 16× at 2B and 17× at 4B. Reading the points directly gives 19× rather than the blog's 16×.", s: "X" },
         { t: "Base model on Ricursive's Olmes fork: MMLU 83.7, MMLU-Pro 61.5, GPQA-Diamond 38.4, SimpleQA-Verified 10.1, HumanEval 70.9, MBPP 81.5, GSM8K 88.5, MATH 59.1. Ricursive says it is close to DeepSeek V3.1 and V4 Flash on reasoning, math and code.", s: "C" },
       ],
     },
@@ -5048,8 +5093,8 @@ window.MODELS = [
       stats: [
         { k: "Steps", v: "700 at 128K, batch 2,048", s: "C" },
         { k: "Rollouts", v: "1.4M (700 × 2,048 = 1.43M)", s: "B+D" },
-        { k: "Gain", v: "+7.9 on Terminal-Bench 2.1 over the SFT checkpoint (about 72.6 → 80.5), per the X infographic", s: "X" },
-        { k: "Versus Beam", v: "The X infographic shows Beam gaining 24.6 points over about 78M rollouts, about 56× Ripple's. The blog's 'roughly 70× fewer' implies about 98M", s: "B+X+D" },
+        { k: "Gain", v: "Terminal-Bench 2.1 72.7 → 80.5 over the run (+7.9), with checkpoints at 0.32M (75.3) and 0.97M (77.9) rollouts", s: "B+D" },
+        { k: "Versus Beam", v: "The blog's chart shows Beam going 53.3 → 77.9 between 3M and 81M rollouts, about 57× Ripple's total. The text says 'roughly 70× fewer'", s: "B+D" },
       ],
       methods: [
         { name: "Truncated importance sampling", t: "Named in the blog without details. In common use it reweights tokens by the trainer-to-sampler probability ratio, capped, to correct for the mismatch between the two.", s: "B" },

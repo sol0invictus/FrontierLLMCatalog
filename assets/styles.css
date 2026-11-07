@@ -779,3 +779,33 @@ table.grid thead th { font-family: var(--font-body); font-weight: 600; font-size
 a { text-decoration: none; }
 a:hover { text-decoration: underline; }
 footer.wrap { padding-block: 2.5rem 1.5rem; }
+
+/* Ablations: a ladder chart and a table of savings per step. */
+.ab + .ab { margin-top: 1rem; }
+.ab h3 { margin: 0 0 0.4rem; }
+.ab-setup { margin: 0 0 1rem; color: var(--ink-2); font-size: var(--step--1); max-width: 72ch; }
+.ab-chart { overflow-x: auto; }
+.ab-svg { display: block; width: 100%; min-width: 30rem; max-width: 46rem; height: auto; }
+.ab-grid { stroke: var(--rule); stroke-width: 1; }
+.ab-axis { stroke: var(--ink-3); stroke-width: 1; }
+.ab-tick { font-family: var(--font-mono); font-size: 10.5px; fill: var(--ink-3); }
+.ab-lab { font-family: var(--font-mono); font-size: 11px; fill: var(--ink-2); }
+.ab-sw { display: inline-block; width: 1.1rem; height: 0; border-top: 2.5px solid var(--c); }
+.ab-sw.dash { border-top-style: dashed; }
+.ab-table { margin-top: 0.25rem; }
+.ab-table th.ab-v, .ab-table td.ab-v { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ab-table td.ab-v.lo { color: var(--ink-3); }
+.ab-table td.ab-v.ext { font-style: italic; }
+.ab-table td.ab-t { min-width: 15rem; }
+.ab-table .ab-note { display: block; color: var(--ink-3); font-size: 0.75rem; margin-top: 0.15rem; }
+.ab-table td.ab-vs { color: var(--ink-3); white-space: nowrap; }
+.ab-table tr.ab-rej th, .ab-table tr.ab-rej td.ab-t { color: var(--ink-3); }
+.ab-table tfoot th, .ab-table tfoot td { font-weight: 600; border-top: 1.5px solid var(--ink-3); border-bottom: 0; }
+.ab-verdict { font-size: 0.72rem; padding: 0.1rem 0.45rem; border-radius: 999px; white-space: nowrap; }
+.ab-verdict.kept { color: var(--st-detailed); background: var(--st-detailed-bg); }
+.ab-verdict.rejected { color: var(--st-none); background: var(--st-none-bg); }
+.ab .facts { margin-top: 0.9rem; }
+
+/* Model names on the home page are real links to each model's own URL. */
+a.gname, a.linkbtn { text-decoration: none; }
+a.gname:hover, a.gname:focus-visible { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
