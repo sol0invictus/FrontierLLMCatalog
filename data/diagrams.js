@@ -235,8 +235,8 @@ window.DIAGRAMS = {
   },
 
   beam: {
-    s: "C",
-    caption: "One Beam decoder layer, repeated 52 times. Token embeddings enter unnormalized. Global layers drop RoPE for a position-dependent query scale, and each residual add uses a fixed, norm-preserving depth schedule.",
+    s: "R+C",
+    caption: "One Beam decoder layer, repeated 52 times. Token embeddings enter unnormalized. Global layers drop RoPE for a position-dependent query scale, and each residual add uses the report's DSRes depth schedule, which preserves the stream's norm.",
     inputs: [{ l: "Token embedding", s: "151,936 × 5120, no norm or scale" }],
     block: {
       title: "Decoder layer",
@@ -252,11 +252,11 @@ window.DIAGRAMS = {
             { l: "QK-norm", s: "per head, learned weight" },
             { l: "RoPE θ = 10k on SWA layers", s: "global: no RoPE, q × (1+(p+1)/2048)^0.1", n: true },
             { l: "Attention", s: "window 512, or full context" },
-            { l: "× σ(W_g x + b_head)", s: "elementwise gate, per-head bias", n: true },
+            { l: "× σ(W_g x + b_head)", s: "elementwise gate, bias init −2.5", n: true },
             { l: "Output projection", s: "6144 → 5120" },
-            { l: "Post-norm", s: "RMSNorm (sandwich)", n: true },
+            { l: "Post-norm", s: "sandwich, gain init 1/√L", n: true },
           ],
-          merge: { l: "h/√k + x·√((k−1)/k)", s: "fixed, k = 2(l+1)", n: true },
+          merge: { l: "h/√k + x·√((k−1)/k)", s: "DSRes, k = 2(l+1)", n: true },
         },
         {
           title: "MoE (layers 3–51)",
@@ -267,7 +267,7 @@ window.DIAGRAMS = {
             { l: "Weighted sum × 2.5", s: "routed scale after combine" },
             { l: "Post-norm", s: "RMSNorm (sandwich)", n: true },
           ],
-          merge: { l: "h/√k + x·√((k−1)/k)", s: "k = 2(l+1) + 1", n: true },
+          merge: { l: "h/√k + x·√((k−1)/k)", s: "DSRes, k = 2(l+1) + 1", n: true },
         },
       ],
     },

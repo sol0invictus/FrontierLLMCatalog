@@ -877,8 +877,8 @@ window.MODELS = [
   /* ------------------------------------------------------------------ */
   {
     id: "beam",
-    glance: {"date": "2026-10-16", "attn": "SWA 512 · 5:1", "moe": "256 → 8", "tokens": "23.8T", "report": "Safety report", "sig": "Over 100M async RL rollouts that tolerate day-old policies"},
-    benchSource: { s: "B+C", t: "Launch-blog table, updated 2026-10-08 (tier 2). The model card (tier 3) re-reports the released BF16 weights at temp 0.7, top_p 0.99; its numbers are in each note, and it is the only source for LiveCodeBench. Harnesses are not specified." },
+    glance: {"date": "2026-10-16", "attn": "SWA 512 · 5:1", "moe": "256 → 8", "tokens": "23.8T", "report": "Report", "sig": "Over 100M async RL rollouts, then two experts merged by on-policy distillation"},
+    benchSource: { s: "R+B+C", t: "Technical report §5.1 (tier 1), run at temperature 0.7, top-p 0.99 and reasoning effort 512. Its numbers match the model card's (tier 3) for the released weights. Notes give the launch-blog value (tier 2, table updated 2026-10-08) where it differs. LiveCodeBench appears only in the card and HLE with tools only in the blog." },
     name: "Reflection Beam 1.0",
     org: "Reflection",
     released: "2026-10-16 (announced Oct 5)",
@@ -887,10 +887,11 @@ window.MODELS = [
     contextShort: "1M",
     modalitiesShort: "Text → text",
     tagline:
-      "Coding and agent model with fine-grained MoE, 512-token sliding windows at 5:1 and NoPE global layers. Pretrained on 23.8T tokens, then RL with more than 100M rollouts.",
-    disclosure: { arch: "detailed", pretrain: "partial", sft: "partial", rl: "detailed" },
+      "Coding and agent model with fine-grained MoE, 512-token sliding windows at 5:1, NoPE global layers and an FP32 residual stream. Pretrained on 23.8T tokens and mid-trained to 512K, then RL with more than 100M rollouts and a two-teacher on-policy distillation.",
+    disclosure: { arch: "detailed", pretrain: "detailed", sft: "partial", rl: "detailed" },
     docs: [
-      { kind: "R", label: "Beam Safety Technical Report (main technical report not yet published)", url: "https://reflection.ai/beam-safety-report" },
+      { kind: "R", label: "Beam Model Technical Report", url: "https://reflection.ai/documents/beam-model-tech-report" },
+      { kind: "R", label: "Beam Safety Technical Report", url: "https://reflection.ai/beam-safety-report" },
       { kind: "B", label: "Introducing Beam (launch blog)", url: "https://reflection.ai/blog/introducing-beam" },
       { kind: "B", label: "Beam is now available", url: "https://reflection.ai/blog/beam-is-available" },
       { kind: "C", label: "Model card (HF)", url: "https://huggingface.co/reflection/Beam-1.0-501B-A23B" },
@@ -903,37 +904,37 @@ window.MODELS = [
     layersNote: "52 layers: 3 dense FFN, then 49 MoE. Global attention every 6th layer, plus the final layer (layer_types in config.json).",
     kv: { globalLayers: 9, swaLayers: 43, window: 512, kvHeads: 8, headDim: 128, stateBytes: 0, stateLabel: "" },
     specs: {
-      params: { v: "501B / 23B (blog); 501.3B / 23.4B (card)", s: "B+C" },
-      sparsity: { v: "4.7% (23.4B / 501.3B, card counts)", s: "D" },
-      layers: { v: "52 = 3 dense + 49 MoE", s: "B+C" },
-      hidden: { v: "5120", s: "C" },
-      vocab: { v: "151,936 (card rounds to 152k)", s: "C" },
-      context: { v: "1M, extended in mid-training; RL ran at up to 256K", s: "B" },
-      mixer: { v: "Attention only (gated GQA + sliding window)", s: "B" },
-      heads: { v: "48 / 8 / 128 (q width 6144 > d_model)", s: "C" },
-      pattern: { v: "Interleaved local/global (blog); 5 : 1, window 512, 43 SWA + 9 global (config)", s: "B+C" },
-      position: { v: "RoPE θ=10k on SWA layers. Global layers use no RoPE; instead queries are scaled by (1 + (p+1)/2048)^0.1, p = 0-indexed position (scalable softmax, as in Llama 4)", s: "C" },
-      attnExtras: { v: "Elementwise attention gating (blog): sigmoid of a full-width gate_proj plus a per-head gate_bias, applied to the attention output. QK-norm is a per-head RMSNorm with learned weight (Qwen3 style)", s: "B+C" },
+      params: { v: "501.3B / 23.4B (report Table 1 and card; the blog rounds to 501B / 23B)", s: "R+B+C" },
+      sparsity: { v: "4.7% (23.4B / 501.3B)", s: "D" },
+      layers: { v: "52 = 3 dense + 49 MoE", s: "R" },
+      hidden: { v: "5120", s: "R" },
+      vocab: { v: "151,936 (the report's text rounds to 152K)", s: "R" },
+      context: { v: "1M. Mid-training trains up to 512K and RULER holds to 1M; MOPD runs at 256K", s: "R" },
+      mixer: { v: "Attention only (gated GQA + sliding window)", s: "R" },
+      heads: { v: "48 / 8 / 128 (q width 6144 > d_model)", s: "R" },
+      pattern: { v: "Local : global 5 : 1, window 512 (report); 43 SWA + 9 global, with the last layer global (config)", s: "R+C" },
+      position: { v: "RoPE θ=10k on local layers, NoPE on global layers. Global queries get a scalable-softmax scale with root compression, (1 + p/2048)^0.1 in the report; the code uses p+1 with p 0-indexed", s: "R+C" },
+      attnExtras: { v: "Elementwise output gate g_h = σ(G_h x + b_h) on the normed input, with the bias initialized to −2.5 and small gate weights. QK-norm keeps its learned gains; the code makes it a per-head RMSNorm (Qwen3 style)", s: "R+C" },
       ssm: { v: "—", s: "" },
-      moe: { v: "256 / top-8", s: "C" },
-      shared: { v: "None", s: "C" },
-      expertDim: { v: "2560 SwiGLU", s: "C" },
+      moe: { v: "256 / top-8", s: "R" },
+      shared: { v: "None", s: "R" },
+      expertDim: { v: "2560 SwiGLU", s: "R" },
       latent: { v: "No", s: "C" },
-      routing: { v: "Sigmoid (not softmax) scores in FP32; e_score_correction_bias used only for selection. Group-limited: 8 groups, each scored by its top-2 experts, top-4 groups kept, then top-8. Weights are the unbiased scores renormalized; routed scale 2.5 applied after aggregation. Router weight and bias kept in FP32. Aux-loss-free bias with cosine-decayed updates + sequence-level balancing; busiest expert 1.04× uniform (blog)", s: "B+C" },
-      dense: { v: "3 (FFN width 20480)", s: "C" },
+      routing: { v: "Sigmoid scores; the bias is used only for selection and the selected scores are normalized. Sequence aux loss 5e-4, router z-loss 1e-5, bias update rate 1e-3 on a cosine schedule after warmup; busiest expert 1.04× uniform (report). The config adds group-limited routing (8 groups scored by their top-2 experts, 4 kept) and a routed scale of 2.5 after combining. Router weight, bias and logits stay in FP32", s: "R+C" },
+      dense: { v: "3 (FFN width 20480)", s: "R" },
       act: { v: "SwiGLU computed in FP32, without the input clamp of its DeepSeek V4 parent class", s: "C" },
-      norm: { v: "Sandwich norm: input, post-attention, pre-FFN and post-FFN RMSNorm, each with a standard learned gain (Olmo3 style, normalized in FP32). Depth-scaled residual: x ← h/√k + x·√((k−1)/k), with k = 2(l+1) for the attention add and 2(l+1)+1 for the FFN add, so the squared coefficients sum to 1. FP32 residual accumulation in training (blog)", s: "B+C" },
-      head: { v: "No norm or scale on token embeddings: they feed layer 0 directly. Untied LM head with no logit multiplier; final softcap 30·tanh(z/30), computed in FP32", s: "C" },
-      mtp: { v: "No MTP head. DFlash2 drafter: 5 layers, d=5120, block 16, reads target layers 4/16/28/40/46", s: "C" },
+      norm: { v: "SandwichNorm on every sublayer, output gains initialized to 1/√L and input gains to 1. DSRes depth-scaled residual: the n-th sublayer reads (1/√n)·Σ h_t, computed recurrently as h/√k + x·√((k−1)/k) (code: k = 2(l+1) for attention, +1 for the FFN). The whole residual stream and the MoE combine run in FP32", s: "R+C" },
+      head: { v: "Embeddings initialized with std 1/√d and fed to layer 0 without norm or scale. Untied LM head with softcap 30 (report), computed as 30·tanh(z/30) in FP32 (code). The head ran in BF16 for pre-training, mid-training and SFT, and in FP32 for RL and MOPD", s: "R+C" },
+      mtp: { v: "No MTP head. DFlash 2 drafter: 1.93B, 5 bidirectional layers reading Beam layers 4/16/28/40/46 (the inputs to its global layers), 4,096-token context window, trained with blocks of 16 and served with blocks of 8", s: "R+C" },
       kv: { v: "36 KiB global + 4 KiB per SWA layer up to the 512 window", s: "D" },
       state: { v: "SWA ring ≈ 86 MiB", s: "D" },
-      precision: { v: "BF16, FP8, NVFP4 (+ DFlash2 drafter)", s: "B" },
+      precision: { v: "BF16 (933.81 GiB); FP8 W8A8 for attention, MLPs, experts and KV cache (468.72 GiB); NVFP4 W4A4 for experts only (≈273.5 GiB); plus the DFlash 2 drafter", s: "R" },
       modalities: { v: "Text only", s: "C" },
       encoders: { v: "—", s: "" },
     },
     paramBreakdown: {
       s: "D",
-      note: "Recomputed from config.json; the total matches the card's 501.3B",
+      note: "Recomputed from config.json; the total matches the report's 501.3B",
       parts: [
         { label: "Routed experts (49×256)", b: 493.3 },
         { label: "Attention incl. gates", b: 5.46 },
@@ -942,242 +943,316 @@ window.MODELS = [
       ],
     },
     highlights: [
-      { t: "<b>Very small windows.</b> 512-token sliding windows at a 5:1 ratio (config), so only 9 of 52 layers keep a full KV cache. elie notes this matches Inkling, while Meta uses 2048 at 3:1.", s: "C+X" },
-      { t: "<b>NoPE globals that still depend on position.</b> Global layers have no RoPE, but queries are scaled by (1 + (p+1)/2048)^0.1, the scalable-softmax trick used in Llama 4 (arXiv 2501.19399). At p = 0 the scale is 1.00; at 128K it is 1.52; at 1M it is 1.87, so attention sharpens as context grows.", s: "C" },
-      { t: "<b>Residual control.</b> The k-th residual add computes h/√k + x·√((k−1)/k), a fixed norm-preserving schedule. Muse uses the same α² + β² = 1 form but learns the gate per channel. The blog adds SandwichNorm and FP32 residual accumulation.", s: "B+C" },
-      { t: "<b>No shared expert.</b> Fine-grained routed experts with auxiliary-loss-free balancing (blog). The config shows group-limited top-8 routing and no shared expert.", s: "B+C" },
+      { t: "<b>Very small windows.</b> 512-token sliding windows at a 5:1 ratio, so only 9 of 52 layers keep a full KV cache. elie notes this matches Inkling, while Meta uses 2048 at 3:1.", s: "R+C+X" },
+      { t: "<b>NoPE globals that still depend on position.</b> Global layers have no RoPE, but queries are scaled by (1 + p/2048)^0.1, a root-compressed form of scalable softmax that the report picked over Nakanishi's original for stability. The scale is 1.00 at p = 0, 1.52 at 128K and 1.87 at 1M, so attention sharpens as context grows.", s: "R+C+D" },
+      { t: "<b>DSRes residuals.</b> Each sublayer reads the scaled sum of all earlier outputs, (1/√n)·Σ h_t, so the stream's norm does not grow with depth and pre-normed sublayers see the same inputs. Combined with SandwichNorm (output gains start at 1/√L) and a residual stream kept entirely in FP32.", s: "R+C" },
+      { t: "<b>Attention starts nearly closed.</b> The elementwise gate's bias starts at −2.5 (σ ≈ 0.08) with tiny gate weights. Reflection adopted it because outlier activations after the output projection persisted even with QK-norm; headwise gates and attention sinks did worse.", s: "R+D" },
+      { t: "<b>No shared expert.</b> Fine-grained routed experts with auxiliary-loss-free balancing plus a small sequence loss; the busiest expert ends at 1.04× uniform load. The config adds group-limited top-8 routing.", s: "R+C" },
       { t: "<b>Wide attention.</b> 48×128 = 6144 query width on a 5120 residual. The elementwise gates add another 6144-wide projection per layer.", s: "D" },
     ],
     refs: {
-          "arch": [
-                {
-                      "label": "Introducing Beam",
-                      "url": "https://reflection.ai/blog/introducing-beam",
-                      "s": "B"
-                },
-                {
-                      "label": "Model card",
-                      "url": "https://huggingface.co/reflection/Beam-1.0-501B-A23B",
-                      "s": "C"
-                },
-                {
-                      "label": "transformers beam",
-                      "url": "https://github.com/huggingface/transformers/tree/main/src/transformers/models/beam",
-                      "s": "C"
-                },
-                {
-                      "label": "config.json",
-                      "url": "https://huggingface.co/reflection/Beam-1.0-501B-A23B/blob/main/config.json",
-                      "s": "C"
-                }
+      arch: [
+        { label: "Report §2.1 Recipe (architecture, optimizer, scaling ladder)", url: "https://reflection.ai/documents/beam-model-tech-report", s: "R" },
+        { label: "Model card", url: "https://huggingface.co/reflection/Beam-1.0-501B-A23B", s: "C" },
+        { label: "transformers beam", url: "https://github.com/huggingface/transformers/tree/main/src/transformers/models/beam", s: "C" },
+        { label: "config.json", url: "https://huggingface.co/reflection/Beam-1.0-501B-A23B/blob/main/config.json", s: "C" },
       ],
-          "pretrain": [
-                {
-                      "label": "Introducing Beam",
-                      "url": "https://reflection.ai/blog/introducing-beam",
-                      "s": "B"
-                },
-        {"label": "Beam Safety Technical Report", "url": "https://reflection.ai/beam-safety-report", "s": "R"}
+      pretrain: [
+        { label: "Report §2.2 Data, §3 Mid-training, §6.5–6.6 MFU and goodput", url: "https://reflection.ai/documents/beam-model-tech-report", s: "R" },
+        { label: "Beam Safety Technical Report (data filtering)", url: "https://reflection.ai/beam-safety-report", s: "R" },
+        { label: "Introducing Beam", url: "https://reflection.ai/blog/introducing-beam", s: "B" },
       ],
-          "sft": [
-                {
-                      "label": "Introducing Beam",
-                      "url": "https://reflection.ai/blog/introducing-beam",
-                      "s": "B"
-                },
-                {
-                      "label": "Beam is now available",
-                      "url": "https://reflection.ai/blog/beam-is-available",
-                      "s": "B"
-                },
-        {"label": "Beam Safety Technical Report", "url": "https://reflection.ai/beam-safety-report", "s": "R"}
+      sft: [
+        { label: "Report §4.1–4.3 (expert SFT, alignment teacher, MOPD)", url: "https://reflection.ai/documents/beam-model-tech-report", s: "R" },
+        { label: "Beam Safety Technical Report", url: "https://reflection.ai/beam-safety-report", s: "R" },
+        { label: "Introducing Beam", url: "https://reflection.ai/blog/introducing-beam", s: "B" },
+        { label: "Beam is now available", url: "https://reflection.ai/blog/beam-is-available", s: "B" },
       ],
-          "rl": [
-                {
-                      "label": "Introducing Beam",
-                      "url": "https://reflection.ai/blog/introducing-beam",
-                      "s": "B"
-                },
-                {
-                      "label": "Beam is now available",
-                      "url": "https://reflection.ai/blog/beam-is-available",
-                      "s": "B"
-                },
-        {"label": "Beam Safety Technical Report", "url": "https://reflection.ai/beam-safety-report", "s": "R"}
+      rl: [
+        { label: "Report §4.1.2 High-compute RL, §4.4 RL infrastructure", url: "https://reflection.ai/documents/beam-model-tech-report", s: "R" },
+        { label: "Beam Safety Technical Report", url: "https://reflection.ai/beam-safety-report", s: "R" },
+        { label: "Introducing Beam", url: "https://reflection.ai/blog/introducing-beam", s: "B" },
+        { label: "Beam is now available", url: "https://reflection.ai/blog/beam-is-available", s: "B" },
       ],
-          "tricks": [
-                {
-                      "label": "Introducing Beam",
-                      "url": "https://reflection.ai/blog/introducing-beam",
-                      "s": "B"
-                },
-                {
-                      "label": "transformers beam",
-                      "url": "https://github.com/huggingface/transformers/tree/main/src/transformers/models/beam",
-                      "s": "C"
-                },
-        {"label": "Beam Safety Technical Report", "url": "https://reflection.ai/beam-safety-report", "s": "R"}
+      tricks: [
+        { label: "Beam Model Technical Report", url: "https://reflection.ai/documents/beam-model-tech-report", s: "R" },
+        { label: "Beam Safety Technical Report", url: "https://reflection.ai/beam-safety-report", s: "R" },
+        { label: "Introducing Beam", url: "https://reflection.ai/blog/introducing-beam", s: "B" },
+        { label: "transformers beam", url: "https://github.com/huggingface/transformers/tree/main/src/transformers/models/beam", s: "C" },
       ],
-          "bench": [
-                {
-                      "label": "Introducing Beam (table)",
-                      "url": "https://reflection.ai/blog/introducing-beam",
-                      "s": "B"
-                },
-                {
-                      "label": "Model card",
-                      "url": "https://huggingface.co/reflection/Beam-1.0-501B-A23B",
-                      "s": "C"
-                }
-          ]
+      ablations: [
+        { label: "Report §2.1–2.2: scaling ladder, web quality classifiers (Fig. 6, Table 5)", url: "https://reflection.ai/documents/beam-model-tech-report", s: "R" },
+        { label: "Report §3.6: Stage 2 data (Fig. 14)", url: "https://reflection.ai/documents/beam-model-tech-report", s: "R" },
+        { label: "Report §4.5–4.6: quantization (Table 13), speculative decoding", url: "https://reflection.ai/documents/beam-model-tech-report", s: "R" },
+      ],
+      bench: [
+        { label: "Report §5 Evaluations (Tables 19–23)", url: "https://reflection.ai/documents/beam-model-tech-report", s: "R" },
+        { label: "Introducing Beam (table)", url: "https://reflection.ai/blog/introducing-beam", s: "B" },
+        { label: "Model card", url: "https://huggingface.co/reflection/Beam-1.0-501B-A23B", s: "C" },
+      ],
     },
     tricks: [
-          {
-                "cat": "Optimization & stability",
-                "name": "Aux-loss-free balancing with decaying bias updates",
-                "t": "Bias-based balancing in the DeepSeek-V3 style, with cosine decay of the bias update rate, plus a sequence-level balance loss. At the end of pretraining the busiest expert averages 1.04× uniform load.",
-                "s": "B"
-          },
-          {
-                "cat": "Optimization & stability",
-                "name": "Fixed depth-scaled residuals",
-                "t": "The k-th residual add computes h/√k + x·√((k−1)/k), so activations do not grow with depth. It is combined with SandwichNorm and FP32 residual accumulation.",
-                "s": "B+C"
-          },
-          {
-                "cat": "Numerics",
-                "name": "FP32 activations in the MLP and LM head",
-                "t": "The SwiGLU activation and product run in FP32 in both dense and expert MLPs. The logit softcap (30) also runs in FP32, because BF16 tanh quantizes badly near saturation.",
-                "s": "C"
-          },
-          {
-                "cat": "Data",
-                "name": "Quality tiers instead of hard filters",
-                "t": "In-house classifiers for web, code and STEM sort data into fine-grained quality tiers, and training is weighted toward the higher tiers. About 95% of raw web tokens were removed. Reflection says standard filters would have lost about 1.8T good tokens.",
-                "s": "B"
-          },
-          {
-                "cat": "Data",
-                "name": "Repeating code and technical data",
-                "t": "Code and technical content were repeated several times during pretraining to raise exposure.",
-                "s": "B"
-          },
-          {
-                "cat": "Data",
-                "name": "Mid-training as an RL prior",
-                "t": "Mid-training data is built from real examples (repos, long-horizon tasks, long documents) specifically to prepare the model for high-compute RL.",
-                "s": "B"
-          },
-          {
-                "cat": "RL",
-                "name": "Version-tagged tokens for stale rollouts",
-                "t": "Each token records the policy version that produced it, so the update can correct for staleness. Training stayed stable with rollouts 107 versions (about a day) old.",
-                "s": "B"
-          },
-          {
-                "cat": "RL",
-                "name": "Controllable length penalty",
-                "t": "Rewards successful solutions and discourages unneeded tokens. The same control is exposed at inference as a reasoning-effort parameter.",
-                "s": "B"
-          },
-          {
-                "cat": "RL",
-                "name": "Reward-hack screening",
-                "t": "Independent judges re-check passing solutions for verifier exploits. Per-token records are used to check train/inference numerical agreement.",
-                "s": "B"
-          },
-          {"cat": "RL", "name": "Forecasting alignment-RL gains", "t": "For non-verifiable alignment rewards from a generative reward model, gains were forecast from the pre-RL checkpoint (r = 0.79 against observed, versus 0.46 for a best-of-N ceiling). The forecasts guided rubric and reward design.", "s": "B"},
-          {
-                "cat": "Post-training",
-                "name": "Two teachers merged with MOPD",
-                "t": "An RL teacher and a separately trained safety teacher (deliberative alignment plus adversarial iterative SFT) are distilled into one student on its own rollouts.",
-                "s": "R+B"
-          },
-          {
-                "cat": "Infrastructure",
-                "name": "Run resilience",
-                "t": "Silent-data-corruption detection, 9 semi-automatic rewinds, and 92.3% goodput on 6,144 GB300 GPUs. In RL, dynamic packing kept batches 99.99% full and weights reached the fleet in about 12 s.",
-                "s": "B"
-          },
-      {"cat": "Post-training", "name": "Policy-free deliberative alignment", "t": "Safety traces are generated with the policy in the system prompt, filtered by an LLM judge, rewritten into general deliberation, then trained without the policy. Multi-turn traces train only the last turn so the model learns to recover from earlier violations.", "s": "R"},
-      {"cat": "RL", "name": "Mixed safety environment", "t": "Safety RL holds a fixed 5% of the teacher's RL mix, runs at a 1:5 harmless-to-harmful ratio, drops tasks the SFT model already solves, and uses a judge that sees the context of each task type.", "s": "R"},
-      {"cat": "Numerics", "name": "FP32 router state", "t": "The router weight and expert-selection bias are kept in FP32, and routing scores are computed in FP32.", "s": "C"},
-      {"cat": "Data", "name": "Decontaminated scaling ladder", "t": "A series of progressively larger models, evaluated on in-house code and web validation sets that all training data is decontaminated against, made the final model's loss predictable.", "s": "B"}
+      { cat: "Architecture", name: "Elementwise gate that starts closed", t: "A sigmoid gate per attention output channel, computed from the normed layer input, with its bias initialized to −2.5 and near-zero weights. It suppressed outliers after the output projection that QK-norm alone left. Headwise gating and attention sinks did less for gradient spikes and long context.", s: "R" },
+      { cat: "Architecture", name: "Root-compressed scalable softmax", t: "Global (NoPE) layers scale query logits by (1 + p/2048)^0.1, which the report chose over Nakanishi's original form for stability. It is what lets RULER hold up to 1M after training at 512K.", s: "R" },
+      { cat: "Optimization & stability", name: "DSRes depth-scaled residuals", t: "The n-th sublayer reads (1/√n) times the sum of all earlier outputs, computed recurrently as h/√k + x·√((k−1)/k). Activations do not grow with depth, and pre-normed sublayers see unchanged inputs. Used with SandwichNorm, whose output gains start at 1/√L.", s: "R+C" },
+      { cat: "Optimization & stability", name: "Aux-loss-free balancing with decaying bias updates", t: "DeepSeek-V3-style selection biases updated at rate 1e-3 on a cosine schedule after warmup, plus a 5e-4 sequence aux loss and a 1e-5 router z-loss. The busiest expert averages 1.04× uniform load. Mid-training turns all three off and updates only router weights.", s: "R" },
+      { cat: "Optimization & stability", name: "AdamC with a fitted LR and WD law", t: "AdamC (Adam with weight decay corrected for the schedule) with β2 = 0.857375 and ε = 1e-16. Peak LR 7.637e-4 and WD 1.8117e-4 come from a multiplicative scaling law in parameters, tokens and batch, with λ ∝ η². Weight decay follows the squared warmup and cosine to zero.", s: "R" },
+      { cat: "Numerics", name: "FP32 residual stream", t: "Weights and activations are mostly BF16, but the whole residual stream, MoE combine, router weights and router GEMM run in FP32, with FP32 master weights and optimizer state. The LM head moves to FP32 for RL and MOPD to cut trainer/inference mismatch.", s: "R" },
+      { cat: "Numerics", name: "FP32 activations in the MLP and softcap", t: "The SwiGLU activation and product run in FP32 in both dense and expert MLPs. The logit softcap (30) also runs in FP32, because BF16 tanh quantizes badly near saturation.", s: "C" },
+      { cat: "Data", name: "Quality tiers instead of hard filters", t: "An in-house classifier trained on LLM-judge labels (κ 0.82) sorts English web into 20 quality tiers. The top 9 tiers (45% of web tokens) are kept and upsampled on a truncated-exponential taper capped near 2× (mean ≈1.5×). Against DCLM's fastText it gives 1.35× compute efficiency, and the taper adds about 10% over uniform sampling.", s: "R" },
+      { cat: "Data", name: "Repeating code and STEM", t: "Over 23.8T training tokens, code averages 2.32 epochs and STEM 2.11, against 1.51 for English web and 0.71 for multilingual web.", s: "R" },
+      { cat: "Data", name: "Data-limited subsampling on the ladder", t: "Smaller ladder tiers get proportionally less unique data, so every tier repeats each source as often as the final run. Gains that depend on fresh data then show up as such.", s: "R" },
+      { cat: "Data", name: "Split-shuffle packing", t: "Long documents are cut at per-epoch random boundaries and globally shuffled before packing, so one document cannot dominate adjacent batches or repeat the same windows each epoch. Smoother gradient norms, lower loss variance and a small compute-efficiency gain on the ladder.", s: "R" },
+      { cat: "Data", name: "Mid-training as an RL prior", t: "Stage 1 (850B tokens at 32K) is 45% coding, 30% STEM and 15% general knowledge, plus 10% replay, built from real repos and long-horizon tasks to prepare for high-compute RL.", s: "R+B" },
+      { cat: "Data", name: "Decontaminated scaling ladder", t: "All training data is decontaminated with 13-grams at a 30% containment threshold. Interventions are kept only if they raise compute efficiency by more than 5% across ladder tiers.", s: "R" },
+      { cat: "RL", name: "Version-tagged tokens for stale rollouts", t: "Fully asynchronous GRPO-style training with in-flight weight updates. Each token records the policy version that produced it; sampled tokens are 5 versions behind on average. The launch blog says training stayed stable with rollouts 107 versions (about a day) old.", s: "R+B" },
+      { cat: "RL", name: "Matching sampler and trainer", t: "The sampler's top-p 0.99 nucleus mask is reused in the loss (DeepSeek-V3.2 style), MoE routing is replayed, the router and its bias are frozen, and the LM head, router and residual run in FP32 on both sides. Median sampler–trainer KL is 2.2e-4 nats.", s: "R" },
+      { cat: "RL", name: "Controllable length penalty", t: "A reasoning-effort input sets a token budget, and a linear penalty applies beyond it. The model first learned to solve the same tasks with fewer tokens, then turned extra effort into higher scores.", s: "R" },
+      { cat: "RL", name: "Reward-hack judge", t: "A judge sees only the final patch. A flagged hack zeroes correctness but keeps the length cost. Chain of thought is monitored but never optimized against.", s: "R" },
+      { cat: "RL", name: "Forecasting reward gains", t: "A reward-dynamics equation fitted on one run predicted each reward component's gain across 318 runs (r = 0.79, versus 0.46 for the pass@k ceiling). From step-0 measurements it also predicted whether a misbehavior would be amplified or squashed, which guided filters and reward changes.", s: "R" },
+      { cat: "Post-training", name: "Two experts merged with MOPD", t: "An agentic expert and an alignment expert, each a short SFT plus RL, are distilled into one student on its own rollouts, with full-vocabulary reverse KL to a teacher picked per task family. Teacher hidden states are shipped and logits rebuilt on the trainer, as in DeepSeek-V4.", s: "R" },
+      { cat: "Post-training", name: "Policy-free deliberative alignment", t: "Safety traces are generated with the policy in the system prompt, filtered by an LLM judge, rewritten into general deliberation, then trained without the policy. Multi-turn traces train only the last turn so the model learns to recover from earlier violations.", s: "R" },
+      { cat: "RL", name: "Mixed safety environment", t: "Safety RL holds a fixed 5% of the teacher's RL mix, runs at a 1:5 harmless-to-harmful ratio, drops tasks the SFT model already solves, and uses a judge that sees the context of each task type.", s: "R" },
+      { cat: "Inference", name: "Local-Hessian NVFP4 on experts only", t: "Experts are quantized to NVFP4 with ModelOpt's Local Hessian scale search, calibrated on 1,000 agentic trajectories of 32K tokens. Attention, dense MLPs, embeddings and head stay BF16, and the router stays FP32. 6.0× per-GPU throughput at 50 tok/s/user on 4 GPUs against BF16 on 8.", s: "R" },
+      { cat: "Inference", name: "DFlash 2 drafter trained mostly at 8K", t: "A 1.93B block-diffusion drafter with a 4,096-token context window, trained on Beam's own outputs mostly at 8K plus a short stage up to 128K. τ = 4.38 sampled, decode speedup 1.96–3.03× at one request. About 3.4K B300 GPU-hours.", s: "R" },
+      { cat: "Infrastructure", name: "Run resilience", t: "103 recoveries in the 21.9-day pretraining run, each with a median 9.7 minutes to the first resumed step. A planned relaunch for the last 20% of steps raised goodput from 73.2% to 92.3%. In RL, batches stayed 99.99% full and weights reached the fleet in about 12 s. The blog adds silent-data-corruption detection and 9 semi-automatic rewinds.", s: "R+B" },
     ],
     pretrain: {
-      headline: "23.8T tokens, code- and STEM-heavy, with about 95% of raw web tokens filtered out.",
+      headline: "23.8T tokens from 13.7T unique (1.73 repeats on average), 35% code and 24% STEM, then two mid-training stages totalling 950B tokens.",
       stats: [
-        { k: "Tokens", v: "23.8T", s: "B" },
-        { k: "Compute", v: "6,144× GB300, under 4 weeks", s: "B" },
-        { k: "Goodput", v: "92.3% late in the run; 9 semi-automatic rewinds", s: "B" },
+        { k: "Tokens", v: "23.804T trained, 13.726T unique", s: "R" },
+        { k: "Sequence length", v: "16,384", s: "R" },
+        { k: "Batch", v: "≈50.3M tokens per step (178.53B warmup tokens ÷ 3,547 steps)", s: "D" },
+        { k: "LR schedule", v: "7.637e-4 peak, linear warmup over 0.75% of training, cosine to 7.637e-7", s: "R" },
+        { k: "Compute", v: "6,144× GB300 for 21.9 days", s: "R" },
+        { k: "MFU", v: "21% steady, 18% averaged over restarts (6·N_act FLOPs, 2,250 TFLOP/s peak)", s: "R" },
+        { k: "Goodput", v: "77.0% over the run; 92.3% for the last 20% of steps", s: "R" },
         { k: "Knowledge cutoff", v: "2026-06-30", s: "C" },
       ],
       stages: [
-        { name: "Pretraining", tokens: "23.8T", tokensB: 23800, detail: "Web, public and proprietary licensed data. Code and technical content were repeated several times.", s: "B" },
-        { name: "Mid-training", tokens: "n/d", tokensB: null, detail: "Built as a prior for high-compute RL: structured repos, long-horizon tasks, long-form documents. Context extended to 1M.", s: "B" },
+        { name: "Pretraining", tokens: "23.8T", tokensB: 23804, detail: "16K sequences. Code, STEM and English web each repeated 1.5–2.3 times; see the mix below.", s: "R" },
+        { name: "Mid-training stage 1", tokens: "850B", tokensB: 850, detail: "32K context. 90% new data (45% coding, 30% STEM, 15% general knowledge) and 10% replay. MFU 13.7%, goodput 81.3%.", s: "R" },
+        { name: "Mid-training stage 2", tokens: "100B", tokensB: 100, detail: "Extends to 512K: 50% organic long-context, 15% synthetic long-context QA and instruction following, 35% recall from earlier data. MFU 7.7%, goodput 86.1%.", s: "R" },
       ],
-      mixes: [],
+      mixes: [
+        {
+          title: "Pretraining mix by training tokens (Table 3)",
+          s: "R",
+          parts: [
+            { label: "Code", pct: 35.47 },
+            { label: "English web", pct: 35 },
+            { label: "STEM", pct: 23.87 },
+            { label: "Multilingual web", pct: 5 },
+            { label: "Other", pct: 0.65 },
+          ],
+        },
+      ],
       notes: [
-        { t: "Custom quality classifiers for web, code and STEM split data into fine-grained quality tiers, and training was weighted toward the higher tiers.", s: "B" },
-        { t: "Reflection says conventional filters would have missed about 1.8T high-quality tokens, including 87% of its curated web-code tokens.", s: "B" },
-        { t: "Code: per-language filters, removal of autogenerated content, a corrupted-code classifier, and rebalancing of over-represented languages and file types.", s: "B" },
+        { t: "Unique and trained tokens by category: English web 5.519T → 8.331T (1.51×), code 3.647T → 8.444T (2.32×), STEM 2.689T → 5.683T (2.11×), multilingual web 1.669T → 1.191T (0.71×), other 0.201T → 0.155T.", s: "R" },
+        { t: "Web pipeline: 245B raw HTML pages, 97B documents after exact dedup, then partitioned into math, code, STEM, English and non-English. Fuzzy dedup, heuristic filters and quality classifiers took the four English-language domains from 111.0T tokens to 9.74T; English alone went 100.8T → 47.0T → 14.9T → 6.69T.", s: "R" },
+        { t: "MassiveWeb-style filters would have removed 80–88% of each technical domain, about 1.8T tokens or 13% of unique tokens, so Reflection built per-domain heuristics instead.", s: "R" },
+        { t: "Dedup runs exact, then MinHash, then edit distance. Documents are masked from each other's attention inside packed sequences.", s: "R" },
+        { t: "Code files are language-detected (go-enry, Magika), license-filtered and exact-deduplicated by Git blob hash, keeping the copy from the repository with more stars and forks. Notebooks are converted into script-like text without outputs.", s: "R" },
+        { t: "Code (blog): per-language filters, removal of autogenerated content, a corrupted-code classifier, and rebalancing of over-represented languages and file types.", s: "B" },
         { t: "STEM PDFs: a vision-language OCR model plus quality and artifact classifiers, run on thousands of GPUs.", s: "B" },
-        { t: "Scaling was predictable across four orders of magnitude of compute, and the final base model landed on the forecast. The scaling ladder used model tiers and in-house code and web validation sets, with all training data aggressively decontaminated against them.", s: "B" },
-        { t: "Reflection trains on almost all publicly accessible, unrestrictively licensed code and code documentation on the web.", s: "B" },
-        { t: "Repeating code and technical data required fuzzy deduplication, packing work and study of overtraining, so that repeats helped rather than hurt generalization.", s: "B" },
+        { t: "The scaling ladder spans about 300M to 6B active parameters at constant tokens per parameter and aspect ratio, with little signal below 0.5B. Scaling held across four orders of magnitude, and Beam Base landed on the forecast, Pareto-optimal against DeepSeek-V4-Flash Base and Nemotron 3 Ultra Base.", s: "R" },
+        { t: "Mid-training uses a sawtooth LR at 5% of the pretraining peak and resets optimizer state per stage. Padding is masked from MoE routing, and FlashAttention-4 runs with zigzag reordering for context parallelism.", s: "R" },
+        { t: "Mid-training data sources are screened with 50/50 ablations: half the stable mixture, half the new source.", s: "R" },
         { t: "Safety filtering in pretraining: duplicate and near-duplicate sequences removed against memorization, unnecessary personal data and NSFW content filtered, and sensitive PII scrubbed across all pretraining data.", s: "R" },
       ],
     },
     sft: {
-      headline: "No SFT token count. Post-training uses two teachers that are merged with multi-teacher on-policy distillation (MOPD).",
+      headline: "Two experts, each a short SFT followed by RL, merged into one student with multi-teacher on-policy distillation (MOPD). No SFT token count.",
       stats: [
-        { k: "SFT tokens", v: "Not disclosed", s: "B" },
+        { k: "SFT tokens", v: "Not disclosed", s: "R" },
         { k: "Chat format", v: "Modified Harmony", s: "C" },
-        { k: "Safety share of teacher SFT", v: "1.6% of the alignment/safety teacher's SFT data", s: "R" },
-        { k: "Harness", v: "Mirror CLI (Python front end + Rust agent core)", s: "B" },
+        { k: "Safety share of teacher SFT", v: "1.6% of the alignment teacher's SFT data", s: "R" },
+        { k: "MOPD step", v: "512 tasks × 8 rollouts at 256K context; LR 3e-6 after 20 warmup steps", s: "R" },
+        { k: "Harness", v: "Mirror (Python front end + Rust agent core)", s: "R+B" },
       ],
       stages: [
-        { name: "RL teacher", tokens: "—", tokensB: null, detail: "Large-scale RL teacher. The blog's \"reasoning expert\" accounts for 80M of the 100M+ RL rollouts.", s: "B" },
-        { name: "Safety teacher", tokens: "—", tokensB: null, detail: "Separate SFT + RL branch from the pretrained checkpoint, using deliberative alignment and adversarial iterative SFT that folds successful attacks back into the mix.", s: "R+B" },
-        { name: "MOPD merge", tokens: "—", tokensB: null, detail: "Both teachers distilled into one student on the student's own rollouts (multi-teacher on-policy distillation).", s: "R+B" },
+        { name: "Agentic expert", tokens: "—", tokensB: null, detail: "Short SFT on trajectories from an earlier Beam, filtered for correctness and quality, covering chat format, tool-call syntax and reasoning. Then the high-compute RL run.", s: "R" },
+        { name: "Alignment expert", tokens: "—", tokensB: null, detail: "Separate SFT + RL branch from the base checkpoint for safety, values and instruction following, using deliberative alignment and adversarial iterative SFT.", s: "R" },
+        { name: "Student SFT", tokens: "—", tokensB: null, detail: "Self-distilled SFT on both experts' data plus expert traces. On its own this did not recover the experts' performance.", s: "R" },
+        { name: "MOPD", tokens: "—", tokensB: null, detail: "The student samples its own rollouts and is trained toward the teacher assigned to each task family by full-vocabulary reverse KL.", s: "R" },
       ],
       mixes: [],
       notes: [
+        { t: "Teacher routing is a per-task-family Bernoulli draw. Instruction following, grounded and long-context tasks are split 50/50 between the two teachers.", s: "R" },
+        { t: "Teacher hidden states are transported and logits rebuilt on the trainer (as in DeepSeek-V4), with blockwise Triton kernels for the full-vocabulary loss. Student sampling uses top-p 0.99, while the loss covers the full vocabulary.", s: "R" },
+        { t: "The student broadly recovers both teachers, and a \"split-braining\" check found no degradation from mixing them.", s: "R" },
         { t: "Deliberative-alignment traces are made in two stages. A model with the safety policy in its system prompt samples candidate traces, and an LLM judge drops any that comply with harmful requests or refuse benign ones. A second model then rewrites the survivors so the reasoning reads as general safety deliberation. The policy is removed at training time.", s: "R" },
         { t: "Multi-turn safety traces train only the last turn, so the model learns to recover after earlier violating turns, as in prefill attacks.", s: "R" },
         { t: "Alignment principles come in three tiers: hard rules, consistent qualities, and default interaction style.", s: "B" },
-        { t: "Safety RL covers single-turn, multi-turn, jailbreak and agentic scenarios, targeting both over-refusal and harmful compliance.", s: "B" },
         { t: "Self-distillation recipe promised for users: generate traces, LoRA-train on verified traces, repeat.", s: "B" },
       ],
     },
     rl: {
-      headline: "More than 100M rollouts on 10.5K GB300 GPUs over 4 weeks, across about 1M mostly synthetic environments.",
+      headline: "Fully asynchronous GRPO-style RL: more than 100M rollouts on about 10.5K GB300 GPUs over four weeks, with a median rollout of 12 minutes.",
       stats: [
-        { k: "Rollouts", v: "100M+ (reasoning expert: 80M)", s: "B" },
-        { k: "Environments", v: "≈1M (SWE, terminal, competitive coding, STEM, search, tools, knowledge work)", s: "B" },
-        { k: "Sandboxes", v: "≈1.3B (launch blog: training and grading; availability blog: training, evaluation and ablations); 110K concurrent rollouts on average, up to 170K concurrent sandboxes", s: "B" },
-        { k: "CPU", v: "883,006 vCPUs at peak (83% of allocatable) across 23 clusters on GCP + AWS, including evals and experiments running alongside", s: "B" },
-        { k: "Inference : train GPUs", v: "3.9 : 1 to 5.4 : 1", s: "B" },
-        { k: "Max RL context", v: "256K", s: "B" },
+        { k: "Rollouts", v: "100M+ in the campaign; 80M+ across 12 production jobs on up to 1,920 trainer + 8,576 inference GPUs", s: "R" },
+        { k: "Tasks", v: "≈1M after filtering several million; 7-gram Jaccard dedup at 0.95 between tasks and 0.80 against evals", s: "R" },
+        { k: "Rollout length", v: "Median ≈12 min; ≈2% over an hour; 1 step in 5 waits on a rollout over 6 h", s: "R" },
+        { k: "Staleness", v: "5 policy versions on average", s: "R" },
+        { k: "Sampling", v: "Temperature 1, top-p 0.99; in-run evals at effort 512 with a 256K output limit", s: "R" },
+        { k: "Sandboxes", v: "≈1.3B (blog), 110K concurrent rollouts on average, on a fleet of 20+ clusters across two clouds and four regions", s: "R+B" },
+        { k: "CPU", v: "883,006 vCPUs at peak (83% of allocatable) across 23 clusters on GCP + AWS, including evals and experiments", s: "B" },
+        { k: "Inference : train GPUs", v: "3.9 : 1 to 5.4 : 1", s: "R" },
       ],
       methods: [
-        { name: "Staleness-tolerant async PG", t: "Every token is tagged with the policy version that produced it. Training stayed stable with rollouts up to a day old, 107 weight versions behind.", s: "B" },
-        { name: "Train/inference consistency", t: "Per-token records let the team check numerical agreement between training and inference. New corrections reduce the mismatch.", s: "B" },
-        { name: "Controllable length penalty", t: "Rewards successful solutions and discourages unnecessary tokens. Completions first got shorter, then longer as agentic skill grew. A reasoning-effort parameter exposes the trade-off. The card claims about 3× fewer reasoning tokens than peers.", s: "B+C" },
-        { name: "Verifier-exploit screening", t: "Independent judges re-check passing solutions for reward hacks.", s: "B" },
-        { name: "Forecasting alignment-RL gains", t: "In the alignment stage, many rewards are non-verifiable and come from a generative reward model. Reflection forecast reward gains from the pre-RL checkpoint (r = 0.79 against observed gains, versus r = 0.46 for a best-of-N ceiling), then used the forecasts to iterate on rubrics and reward design, for example to suppress hallucinations and excessive formatting.", s: "B" },
+        { name: "Asynchronous PG with per-token versions", t: "In-flight weight updates and task-specific deadlines keep the trainer fed despite heavy-tailed rollouts. Every token records the policy version that produced it. The launch blog says training stayed stable with rollouts up to 107 versions (about a day) old.", s: "R+B" },
+        { name: "Train/inference consistency", t: "The sampler's nucleus mask is reused in the loss, routing is replayed, the router and bias are frozen, and the LM head, router and residual run in FP32 for both training and inference. Median sampler–trainer KL is 2.2e-4 nats, 8.7e-5 right after a restart, with a mean |Δ log p| of 0.0085.", s: "R" },
+        { name: "Controllable length penalty", t: "A reasoning-effort input and a linear penalty beyond a per-effort budget. On DeepSWE v1.1 the model first solved the same tasks with fewer tokens, then spent extra tokens at higher effort for higher scores. The card claims about 3× fewer reasoning tokens than peers.", s: "R+C" },
+        { name: "Reward-hack judge", t: "A judge reviews only the final patch. A flagged hack sets correctness to 0 but keeps the length cost. Chain of thought is monitored but not optimized against.", s: "R" },
+        { name: "Domain-only phases", t: "From 26% to 52% of the run, only math, STEM and competitive programming; from 52% to 65%, only SWE. Neither phase regressed the other domains. The mixture changed 5 times in all.", s: "R" },
+        { name: "Forecasting reward gains", t: "In alignment RL, a fitted reward-dynamics equation predicted each reward component's gain across 318 runs (r = 0.79 against observed, versus 0.46 for the pass@k ceiling). Reflection used it to design filters and rewards, for example to suppress hallucinations and excessive formatting.", s: "R+B" },
         { name: "Safety RL environment", t: "One mixed environment covers single-turn, multi-turn, jailbreak and agentic tool-use tasks, holding a fixed 5% of the safety teacher's RL mix. It uses a 1:5 harmless-to-harmful ratio, and tasks the SFT checkpoint already handles are dropped. A context-aware judge scores refusal behavior and sees prior turns, the jailbreak's seed intent, or the unsafe action.", s: "R" },
-        { name: "Fleet engineering", t: "Weights reach the inference fleet in about 12 s (median). Hierarchical distribution cut cross-rack traffic by 75%. 71 inference incidents were absorbed without killing the job. Batches were packed 99.99% full.", s: "B" },
+        { name: "Fleet engineering", t: "Weights reach the inference fleet in about 12 s and batches are packed 99.99% full (report). The blog adds that hierarchical distribution cut cross-rack traffic by 75% and that 71 inference incidents were absorbed without killing the job.", s: "R+B" },
       ],
       notes: [
-        { t: "Browsing ability emerged even though browsing tasks were not in the RL mix. Given web access, Beam learned on its own to search for and query other LLMs, and to call OCR APIs to read documents.", s: "B" },
+        { t: "Mean NLL of sampled tokens rose from 0.37 to 0.50 nats: reasoning tokens 0.63 → 0.69, final-answer tokens 0.25 → 0.06. Median gradient norm was 1.7e-3.", s: "R" },
+        { t: "DeepSWE pass@1 at effort 512 reached 35% at 79% of the run and 41% at the end. A harder SWE task set was added at 83%.", s: "R" },
+        { t: "BrowseComp rose from 50.1 to 57.9 between 27% and 83% of the run with no search tasks in RL. Given web access, the blog says Beam learned on its own to query other LLMs and to call OCR APIs.", s: "R+B" },
         { t: "RL and MOPD pull in opposite directions on safety. Against the SFT model, the safety teacher's RL changed harmful-request refusal by +8.3% and harmless compliance by −10.5% (relative). MOPD then moved them −4.4% and +9.9%.", s: "R" },
         { t: "Scaling the safety teacher from 100B to 501B, with data and recipe fixed, cut over-refusal by 48.7% relative, with a 3.1% drop in the harmful-request pass rate.", s: "R" },
-        { t: "The trainer was resized across five GPU mesh configurations without losing state. Packing held per-GPU trainer throughput within 1.5% while mean rollout length grew almost 70%.", s: "B" },
-        { t: "Reflection names data quality problems as the cause of capability plateaus during RL.", s: "B" },
+        { t: "The trainer was resized across five mesh configurations without losing state. A fault that took down several NVL72 racks lost about 7% of one batch's groups.", s: "R" },
+        { t: "Packing held per-GPU trainer throughput within 1.5% while mean rollout length grew almost 70%. Reflection names data quality problems as the cause of capability plateaus during RL.", s: "B" },
         { t: "Rollout counts compared in the blog: Beam 80M (reasoning expert), Inkling 30M, MiMo 753K.", s: "B" },
       ],
     },
+    baseBench: {
+      s: "R",
+      t: "Report Table 23, Beam Base after pretraining and mid-training. Beam's numbers and unmarked baselines are Reflection's own runs; † marks a value from that model's own report. The agentic rows let the base model write raw bash in a fenced block in Reflection's harness, a format DeepSeek V4 Pro and Nemotron 3 Ultra Base failed to use. Read rows with a setting note with care.",
+      cols: ["Beam Base", "DeepSeek V4 Pro Base", "Nemotron 3 Ultra Base", "MiMo-V2.5-Pro Base"],
+      sizes: ["501B / 23B", "1.6T / 49B", "550B / 55B", "1.02T / 42B"],
+      rows: [
+        { cat: "Commonsense", k: "HellaSwag", set: "10-shot likelihood", v: [90.3, 90.2, 90.5, 89.8], fromOwn: [2, 3] },
+        { cat: "Commonsense", k: "WinoGrande", set: "5-shot likelihood", v: [86.7, 84.3, 79.3, 85.6], fromOwn: [2, 3] },
+        { cat: "Commonsense", k: "BBH", set: "3-shot CoT greedy", v: [90.4, 87.5, 91.6, 88.4], fromOwn: [1, 3] },
+        { cat: "Knowledge", k: "MMLU-Pro", set: "5-shot CoT greedy", v: [72.6, 73.5, 79.1, 68.5], fromOwn: [1, 2, 3] },
+        { cat: "Knowledge", k: "TriviaQA", set: "5-shot greedy", v: [86.6, 85.6, 88.5, 81.3], fromOwn: [1, 3] },
+        { cat: "Math & STEM", k: "GPQA Diamond", set: "0-shot temp 0.7; baselines 5-shot", v: [72.4, 41.9, 50.0, 66.7], fromOwn: [2, 3] },
+        { cat: "Math & STEM", k: "MATH", set: "4-shot greedy; Beam 0-shot", v: [94.9, 64.5, 82.0, 86.2], fromOwn: [1, 2, 3] },
+        { cat: "Math & STEM", k: "AIME 2026", set: "0-shot temp 0.7", v: [63.7, 1.9, 3.2, 11.5] },
+        { cat: "Coding", k: "HumanEval+", set: "0-shot temp 0.7; MiMo 1-shot", v: [87.3, 76.8, 83.8, 75.6], fromOwn: [1, 2, 3] },
+        { cat: "Coding", k: "MBPP+", set: "3-shot greedy", v: [87.8, 80.7, 86, 87.8] },
+        { cat: "Coding", k: "LiveCodeBench v6", set: "0-shot greedy; DeepSeek, MiMo 1-shot", v: [63.4, 38.3, 38.3, 39.6], fromOwn: [3] },
+        { cat: "SWE & terminal", k: "SWE-bench Verified", set: "agentic temp 0.7; MiMo 3-shot agentless", v: [49.2, null, null, 35.7], fromOwn: [3] },
+        { cat: "SWE & terminal", k: "SWE-bench Multilingual", set: "agentic temp 0.7", v: [32.1, null, null, 6.3] },
+        { cat: "SWE & terminal", k: "SWE-Bench Pro", set: "agentic temp 0.7", v: [28.4, null, null, 5.1] },
+        { cat: "SWE & terminal", k: "Terminal-Bench Lite", set: "agentic temp 0.7", v: [48.1, null, null, 10.2] },
+      ],
+    },
+    ablations: [
+      {
+        title: "Web quality classifier",
+        s: "R+D",
+        setup: "Each arm uses a different classifier to sort the same English web corpus into quality tiers, then trains the scaling ladder with a common quality-upsampling schedule. A cell is compute efficiency on general-web validation loss against DCLM's fastText classifier (1.0): the compute DCLM's arm would need to reach the same loss, divided by the compute used. Values come from the vector points of the report's Figure 6, so they are exact to the plot; column FLOPs are rounded from its log axis. Reflection counts a change as real only when it moves compute efficiency by more than 5%.",
+        heads: ["Classifier", "What it is", "Against"],
+        cols: ["≈5e18 FLOPs", "≈5e19", "≈3e20", "≈1e21"],
+        unit: "×",
+        rows: [
+          { k: "FineWeb-Edu", t: "FineWeb-Edu's educational-value classifier", vs: "DCLM fastText", v: [1.12, 1.01, 1.05, 1.02], verdict: "rejected" },
+          { k: "Ours, fastText", t: "fastText trained on Reflection's LLM-judge labels", vs: "DCLM fastText", v: [1.30, 1.27, 1.27, 1.23], verdict: "rejected" },
+          { k: "In-house, uniform", t: "In-house classifier with uniform sampling over the kept tiers", vs: "DCLM fastText", v: [1.25, 1.19, 1.29, 1.28], verdict: "rejected", note: "Control that removes the upsampling schedule: the schedule adds 6–10% at each scale" },
+          { k: "In-house", t: "Small in-house classifier on the same labels, with the common schedule", vs: "DCLM fastText", v: [1.37, 1.31, 1.37, 1.35], verdict: "kept", note: "Report: 1.35× ladder average" },
+        ],
+        notes: [
+          { t: "Classifier-level agreement (Table 5; natural-holdout Keep-AUC / binary AUC / ordinal Spearman): DCLM 0.595 / 0.648 / 0.017, FineWeb-Edu 0.664 / 0.517 / 0.371, Reflection fastText 0.850 / 0.746 / 0.687, in-house 0.949 / 0.913 / 0.878. The ordering carries over to the ladder.", s: "R" },
+          { t: "Labels come from an LLM judge (Cohen's κ 0.82 on a binary evaluation) applied to several hundred thousand documents drawn from a 522M-document sample.", s: "R" },
+          { t: "STEM and code validation, which only English web changes should not move, stay between 0.89 and 1.17 for every arm, with no consistent ordering.", s: "R+D" },
+          { t: "Follow-up sweeps with the in-house classifier: keeping only the top N of 20 tiers worked best at N = 3 for the smallest ladder model and N = 6 for the largest. The run keeps 9 tiers (45% of web tokens) because it trains far longer, and a truncated-exponential taper (capped near 2×, mean ≈1.5×) beat uniform sampling over them by about 10%.", s: "R" },
+        ],
+      },
+      {
+        title: "Mid-training stage 2: long context against everything else",
+        s: "R+D",
+        setup: "Stage 2 (100B tokens at up to 512K: 50% organic long-context, 15% synthetic long-context QA and instruction following, 35% recall data) against the Stage 1 checkpoint (850B tokens at 32K). A cell is the score difference in points, from the labels of the report's Figure 14. Reflection picked the mix by grid search, because the mixing weight traded RULER gains against regressions elsewhere.",
+        heads: ["Benchmark"],
+        heat: "delta",
+        cols: ["Stage 2 − Stage 1"],
+        unit: " pt",
+        rows: [
+          { k: "RULER 512K", v: [58.4] },
+          { k: "RULER 256K", v: [45.4] },
+          { k: "RULER 128K", v: [23.7] },
+          { k: "LiveCodeBench v6, no prefix", v: [6.0] },
+          { k: "WinoGrande", v: [1.5] },
+          { k: "TriviaQA, clean few-shot", v: [0.5] },
+          { k: "Simple SWE", v: [0.2] },
+          { k: "HellaSwag", v: [0.1] },
+          { k: "AIME 2026", v: [0.0] },
+          { k: "MBPP+, sanitized", v: [-0.1] },
+          { k: "MATH500", v: [-0.2] },
+          { k: "BBH", v: [-0.3] },
+          { k: "MMLU-Pro", v: [-0.4] },
+          { k: "Internal coding index", v: [-0.6] },
+          { k: "HumanEval+", v: [-0.8] },
+          { k: "GPQA Diamond", v: [-1.2] },
+          { k: "Simple Terminal", v: [-1.7] },
+        ],
+        notes: [
+          { t: "The figure's 95% intervals cover zero for every row except the three RULER lengths. AIME 2026's interval spans roughly ±18 points.", s: "R+D" },
+          { t: "Base-model RULER stays ahead of DeepSeek V4 Pro, Nemotron 3 Ultra and MiMo-V2.5-Pro Base up to 512K and keeps working at 1M, past the trained length.", s: "R" },
+        ],
+      },
+      {
+        title: "NVFP4 recipe",
+        s: "R+D",
+        setup: "Each recipe quantizes the BF16 checkpoint's experts to NVFP4 (W4A4) with the same 1,000 × 32K-token agentic calibration set, seed and pipeline, and a BF16 KV cache. Fidelity is teacher-forced on 64 held-out agentic sequences of 32,768 tokens (2.1M scored tokens). The last column is the median, over 10 benchmarks, of each recipe's score relative to Local Hessian.",
+        heads: ["Recipe"],
+        heat: "none",
+        cols: ["Mean KL(BF16‖NVFP4)", "Top-1 agreement", "Median vs Local Hessian"],
+        unit: ["", "%", "%"],
+        digits: [4, 2, 1],
+        best: ["low", "high", null],
+        rows: [
+          { k: "Max scale (RTN)", v: [0.0315, 96.66, 99.7], verdict: "rejected" },
+          { k: "Four-over-six", v: [0.0308, 96.73, 99.6], verdict: "rejected" },
+          { k: "Local Hessian", v: [0.0290, 96.82, 100.0], verdict: "kept", note: "Released checkpoint" },
+          { k: "Local Hessian + dense MLPs", v: [0.0308, 96.75, 99.7], verdict: "rejected", note: "Saves only 1.26 GiB (0.5%)" },
+        ],
+        notes: [
+          { t: "Local Hessian lowers KL by 8% against max scale and 6% against four-over-six. Benchmark differences are small and noisy (AdvancedIF complex single-turn ranges 82.8–87.3 across recipes), so fidelity decided.", s: "R+D" },
+          { t: "Also quantizing the three dense MLPs raises KL by as much as changing the scale method, for half a percent of size, so they stay BF16.", s: "R" },
+          { t: "Served on B300: NVFP4 on 4 GPUs gives 6.0× the per-GPU throughput of BF16 on 8 at 50 tok/s/user and 4.2× at 100; FP8 on 4 GPUs gives 1.6× and 1.4×. NVFP4 holds 8.2M tokens of KV cache on 4 GPUs against FP8's 5.8M.", s: "R" },
+        ],
+      },
+      {
+        title: "DFlash 2 drafter",
+        s: "R+D",
+        setup: "Development runs for the speculative-decoding drafter. Cells are relative changes in accepted draft tokens and in decode speedup against the stated baseline; a dash means the report gives no number.",
+        heads: ["Change", "Detail", "Against"],
+        heat: "delta",
+        cols: ["Accepted tokens", "Speedup"],
+        unit: "%",
+        rows: [
+          { k: "MOPD rollouts", t: "Replace 42% of the PerfectBlend prompts with Beam's MOPD rollouts", vs: "PerfectBlend only", v: [9.9, null], verdict: "kept", note: "+21% on agentic traces; measured on pre-release Beam" },
+          { k: "Long-context stage", t: "Add a stage on traces up to 128K", vs: "Training at 8K only", v: [3.8, null], verdict: "kept", note: "Beyond 64K of context; +1.6% at 8K–16K. Saturated within 4K steps, so the stage is kept short" },
+          { k: "8 layers", t: "Eight drafter layers instead of five", vs: "5 layers", v: [1.2, 0.5], verdict: "rejected", note: "Served; +2.8% accepted in replay. 60% more parameters for a speedup within noise" },
+          { k: "Serve 8 positions", t: "Verify 8 drafted positions per block instead of 16", vs: "16 positions", v: [null, 18.4], verdict: "kept", note: "Acceptance length falls 5–15%, but chat speedup rises 1.63× → 1.93× at 1 request and 1.46× → 2.00× at 128; faster in 11 of 12 settings" },
+        ],
+        notes: [
+          { t: "Released drafter on Beam NVFP4, 4 × B300, 7 drafted tokens: τ = 4.38 sampled and 4.64 greedy over 1,562 turns. Decode speedup is 1.96× (MT-Bench) to 3.03× (GSM8K) at one request and 1.89–2.75× at 32. On DeepSWE traces τ stays between 4.2 and 4.6 from 16K to 128K of context.", s: "R" },
+          { t: "A drafter trained only at 8K accepted 4.70 tokens per block of 16 at 4K–8K of context and 5.02 beyond 64K, so features transfer to long contexts despite the position-scaled global layers.", s: "R" },
+        ],
+      },
+      {
+        title: "Other design choices tested (no numbers published)",
+        s: "R",
+        setup: "Choices the report says were compared on the scaling ladder or in development runs, without giving the measurements.",
+        heads: ["Change", "Detail", "Against"],
+        cols: [],
+        rows: [
+          { k: "Elementwise gate", t: "Sigmoid gate on every attention output channel", vs: "Headwise gate; attention sinks", v: [], verdict: "kept", note: "The alternatives did less to cut gradient spikes or to help long context" },
+          { k: "QK-norm gains", t: "Keep learnable gains in the QK RMSNorms", vs: "Gain-free QK-norm", v: [], verdict: "kept", note: "Dropping the gains bounds the logits but hurt long-context extrapolation" },
+          { k: "Scalable softmax", t: "Root-compressed (1 + p/2048)^0.1", vs: "Nakanishi's form", v: [], verdict: "kept", note: "Chosen for stability" },
+          { k: "SandwichNorm init", t: "Output gains at 1/√L, input gains at 1", vs: "Other initializations", v: [], verdict: "kept", note: "The most effective setting tried" },
+          { k: "Split-shuffle packing", t: "Random per-epoch cuts and a global shuffle before packing", vs: "Concat-then-split", v: [], verdict: "kept", note: "Smoother gradient norms, lower loss variance, a small compute-efficiency gain" },
+          { k: "SFT-only merge", t: "Merge the experts by SFT on their data and traces", vs: "SFT then MOPD", v: [], verdict: "rejected", note: "SFT alone did not recover the experts' performance" },
+        ],
+      },
+    ],
   },
 
   /* ------------------------------------------------------------------ */
@@ -5414,7 +5489,7 @@ window.BENCHMARKS = [
       ultra3: { v: 70.7 },
       inkling: { v: 77.6, n: "bash-only harness" },
       glimmer: { v: 76.0, n: "internal run" },
-      beam: { v: 80.9, n: "card: 81.6" },
+      beam: { v: 81.6, n: "launch blog: 80.9" },
       super: { v: 71.1, n: "OpenCode, 3-run mean" },
       lightning: { v: 52.2, n: "NeMo Gym" } } },
   { cat: "Agentic coding", name: "SWE-bench Multilingual", unit: "%", scores: {
@@ -5425,7 +5500,7 @@ window.BENCHMARKS = [
       dsv4flash: { v: 73.3, n: "Preview" },
       dsv4pro: { v: 76.2, n: "Preview" },
       ultra3: { v: 67.7 },
-      beam: { v: 78.0, n: "card: 78.3" }, super: { v: 67.72, n: "OpenCode" }, lightning: { v: 37.13 } } },
+      beam: { v: 78.3, n: "launch blog: 78.0" }, super: { v: 67.72, n: "OpenCode" }, lightning: { v: 37.13 } } },
   { cat: "Agentic coding", name: "SWE-bench Pro", unit: "%", cmp: false, scores: {
       ripple: { v: 61.42, n: "v1.0, OpenCode; 79.1 on v2.0 Hard with Terminus 2" },
       laguna: { v: 59.4, n: "public set, pool harness, avg@4" },
@@ -5439,7 +5514,7 @@ window.BENCHMARKS = [
       qwen38: { v: 67.7, n: "Claude Code on a corrected task set" },
       inkling: { v: 54.3, n: "public set" },
       glimmer: { v: 51.2 },
-      beam: { v: 65.5, n: "“v1”; 77.2 on v2-Hard; card: 66.1 / 76.5" },
+      beam: { v: 66.1, n: "v1, 731 tasks; 76.5 on the 51-task v2-Hard subset; launch blog: 65.5 / 77.2" },
       super: { v: 51.78, n: "public set, OpenCode" } } },
   { cat: "Agentic coding", name: "Terminal-Bench 2.1", unit: "%", scores: {
       ripple: { v: 80.52, n: "blog; card 80.5, also 80.5 with Terminus 2 at 128K" },
@@ -5465,7 +5540,7 @@ window.BENCHMARKS = [
       inkling: { v: 63.8, n: "internal harness; contaminated web-search solutions scored 0" },
       glimmer: { v: 51.7, n: "Terminus 2" },
       muse: { v: 76.4, n: "Terminus 2 via Artificial Analysis" },
-      beam: { v: 80.1, n: "harness unspecified; card: 80.1" },
+      beam: { v: 80.1, n: "launch blog: 80.1" },
       super: { v: 60.67, n: "Terminus 2, 8 runs, 3 h timeout" },
       lightning: { v: 24.44 } } },
   { cat: "Agentic coding", name: "DeepSWE v1.1", unit: "%", cmp: false, scores: {
@@ -5488,7 +5563,7 @@ window.BENCHMARKS = [
       kimik3: { v: 67.5, n: "Kimi Code harness; 67.3 with mini-SWE-agent" },
       dsv41: { v: 74.2, n: "mini-SWE; -1017: 77.0" },
       muse: { v: 60, n: "Muse Code harness (AA)" },
-      beam: { v: 44.4, n: "card: 43.3" },
+      beam: { v: 43.3, n: "launch blog: 44.4" },
       super: { v: 24.6, n: "NVIDIA internal pass@1; 34.5 with parallel agents + verifier" } } },
   { cat: "Agentic coding", name: "SWE-Atlas Codebase QnA", unit: "%", scores: {
       ml4: { v: 59.4, n: "preview checkpoint (2026-10-06)" },
@@ -5496,7 +5571,7 @@ window.BENCHMARKS = [
       hy4: { v: 64.0, n: "Claude Code, 256 turns" },
       step5: { v: 63.6 },
       minimaxm3: { v: 37.9, n: "mini-SWE-agent, 3 h" },
-      muse: { v: 58, n: "Muse Code harness (AA)" }, beam: { v: 34.6, n: "card: 31.8" } } },
+      muse: { v: 58, n: "Muse Code harness (AA)" }, beam: { v: 31.8, n: "launch blog: 34.6" } } },
   { cat: "Agentic coding", name: "LiveCodeBench", unit: "%", scores: {
       lfm3: { v: 73.46, n: "v6" },
       olmo3: { v: 83.3, n: "v3, Olmo 3.1 Think 32B" },
@@ -5507,7 +5582,7 @@ window.BENCHMARKS = [
       dsv4pro: { v: 93.5, n: "v6, Preview" },
       gemma4: { v: 80.0, n: "v6" },
       ultra3: { v: 89.0, n: "v6" },
-      beam: { v: 88.3, n: "model card only" }, super: { v: 88.22, n: "v6, 454 problems" } } },
+      beam: { v: 88.3, n: "model card only; not in the report's tables" }, super: { v: 88.22, n: "v6, 454 problems" } } },
 
   { cat: "Tool use & agents", name: "MCP-Atlas", unit: "%", scores: {
       ripple: { v: 71.67 },
@@ -5521,7 +5596,7 @@ window.BENCHMARKS = [
       kimik3: { v: 84.2, n: "public 500 tasks, 100 turns, Gemini 3.1 Pro judge" },
       inkling: { v: 76.0, n: "HF card: 74.1" },
       glimmer: { v: 75.5, n: "public 500 tasks, 4 runs" },
-      muse: { v: 89.2, n: "Scale AI leaderboard harness" }, beam: { v: 78.7, n: "card: 80.8" } } },
+      muse: { v: 89.2, n: "Scale AI leaderboard harness" }, beam: { v: 80.8, n: "launch blog: 78.7" } } },
   { cat: "Tool use & agents", name: "τ³-Bench Banking", unit: "%", scores: {
       ripple: { v: 31.27 },
       motif3: { v: 35.3 },
@@ -5531,7 +5606,7 @@ window.BENCHMARKS = [
       kimik3: { v: 33.4, n: "Artificial Analysis" },
       inkling: { v: 23.7, n: "Artificial Analysis" },
       glimmer: { v: 23.5 },
-      beam: { v: 38.0, n: "card: 36.1" }, super: { v: 18.88, n: "8 trials, GPT-5.4-mini user" }, lightning: { v: 9.9 } } },
+      beam: { v: 36.1, n: "launch blog: 38.0" }, super: { v: 18.88, n: "8 trials, GPT-5.4-mini user" }, lightning: { v: 9.9 } } },
   { cat: "Tool use & agents", name: "τ²-Bench Telecom", unit: "%", scores: {
       lfm25: { v: 88.1 },
       motif3: { v: 94.7 },
@@ -5549,7 +5624,7 @@ window.BENCHMARKS = [
       ultra3: { v: 44.4 },
       kimik3: { v: 91.2, n: "compaction at 300K; 90.4 with full 1M, no management" },
       inkling: { v: 77.1, n: "with context management" },
-      beam: { v: 77.4, n: "with context management; card: 76.8" },
+      beam: { v: 76.8, n: "discard-all context compaction; launch blog: 77.4" },
       super: { v: 78.91, n: "NeMo Gym harness, Exa search, discard-all context" },
       lightning: { v: 39.5 } } },
   { cat: "Tool use & agents", name: "OSWorld-Verified", unit: "%", cmp: false, scores: {
@@ -5616,10 +5691,10 @@ window.BENCHMARKS = [
       mimo26: { v: 53.1, n: "v1.0.6" },
       glm53: { v: 48.2, n: "v1.0.6; Z.ai lists Kimi K3 at 46.7" },
       kimik3: { v: 30.8, n: "600-task public subset" },
-      dsv41: { v: 54.8, n: "v1.0.6 public set; -1017: 60.5" }, beam: { v: 37.0, n: "card: 39.3" } } },
+      dsv41: { v: 54.8, n: "v1.0.6 public set; -1017: 60.5" }, beam: { v: 39.3, n: "public split; launch blog: 37.0" } } },
   { cat: "Tool use & agents", name: "DeepSearchQA", unit: "%", scores: {
       kimik3: { v: 95.0, n: "F1" },
-      glimmer: { v: 74.6, n: "internal, 4 runs" }, beam: { v: 80.1, n: "with context management; card: 80.5" } } },
+      glimmer: { v: 74.6, n: "internal, 4 runs" }, beam: { v: 80.5, n: "discard-all context compaction; launch blog: 80.1" } } },
 
   { cat: "Reasoning & knowledge", name: "GPQA Diamond", unit: "%", scores: {
       ripple: { v: 85.2 },
@@ -5643,7 +5718,7 @@ window.BENCHMARKS = [
       dsv41: { v: 90.9 },
       inkling: { v: 87.2, n: "AA" },
       glimmer: { v: 83.5, n: "AA" },
-      muse: { v: 89.0, n: "AA" }, beam: { v: 90.5, n: "card: 90.6" }, super: { v: 89.52, n: "8 repeats" }, lightning: { v: 76.45 } } },
+      muse: { v: 89.0, n: "AA" }, beam: { v: 90.6, n: "launch blog: 90.5" }, super: { v: 89.52, n: "8 repeats" }, lightning: { v: 76.45 } } },
   { cat: "Reasoning & knowledge", name: "HLE, text, no tools", unit: "%", scores: {
       hy4: { v: 43.4 },
       minimaxm31f: { v: 43.4, n: "text-only subset (2,158)" },
@@ -5653,7 +5728,7 @@ window.BENCHMARKS = [
       dsv41: { v: 39.1, n: "full set 36.8; -1017: 44.0" },
       inkling: { v: 29.7, n: "AA" },
       glimmer: { v: 22.0, n: "AA" },
-      beam: { v: 36.2, n: "card: 36.0" }, super: { v: 31.79, n: "2,158 text questions" }, lightning: { v: 10.8 } } },
+      beam: { v: 36.0, n: "launch blog: 36.2" }, super: { v: 31.79, n: "2,158 text questions" }, lightning: { v: 10.8 } } },
   { cat: "Reasoning & knowledge", name: "HLE, with tools", unit: "%", cmp: false, scores: {
       kimik31: { v: 70.0, n: "HLE-Full with tools" },
       lfm3: { v: 13.9, n: "7.17 without tools" },
@@ -5672,7 +5747,7 @@ window.BENCHMARKS = [
       dsv41: { v: 63.9 },
       inkling: { v: 46.0 },
       muse: { v: 61.0, n: "bash + browser, internal" },
-      beam: { v: 51.2, n: "launch-blog table; card: 51.1" },
+      beam: { v: 51.2, n: "launch blog only (not in the report); card: 51.1" },
       super: { v: 46.01, n: "Python + web search, internal harness" } } },
   { cat: "Reasoning & knowledge", name: "HLE-Diamond, no tools", unit: "%", scores: {
       kimik31: { v: 39.4 },
@@ -5683,7 +5758,7 @@ window.BENCHMARKS = [
       inklingsm: { v: 95.5 },
       gemma4: { v: 89.2, n: "no tools" },
       inkling: { v: 97.1 },
-      glimmer: { v: 94.7, n: "10 runs" }, beam: { v: 97.8, n: "card: 97.7" } } },
+      glimmer: { v: 94.7, n: "10 runs" }, beam: { v: 97.7, n: "launch blog: 97.8" } } },
   { cat: "Reasoning & knowledge", name: "SciCode", unit: "%", scores: {
       ripple: { v: 39.4, n: "Inspect AI" },
       lfm3: { v: 28.47 },
@@ -5694,7 +5769,7 @@ window.BENCHMARKS = [
       ultra3: { v: 44.6, n: "subtask accuracy" },
       kimik3: { v: 58.7, n: "Artificial Analysis" },
       glimmer: { v: 43.6 },
-      muse: { v: 58.5, n: "AA" }, beam: { v: 49.7, n: "card: 49.2" }, super: { v: 47.13, n: "subtask accuracy" }, lightning: { v: 32.74 } } },
+      muse: { v: 58.5, n: "AA" }, beam: { v: 49.2, n: "launch blog: 49.7" }, super: { v: 47.13, n: "subtask accuracy" }, lightning: { v: 32.74 } } },
   { cat: "Reasoning & knowledge", name: "CritPt", unit: "%", scores: {
       ml4: { v: 26.0, n: "v2 hard subset, Artificial Analysis" },
       motif3: { v: 6.6 },
@@ -5703,7 +5778,7 @@ window.BENCHMARKS = [
       inklingsm: { v: 8.3 },
       ultra3: { v: 3.1, n: "no tools" },
       kimik3: { v: 23.4, n: "Artificial Analysis" },
-      beam: { v: 16.3, n: "card: 16.3" }, super: { v: 10.86 }, lightning: { v: 0.0 } } },
+      beam: { v: 16.3, n: "AA evaluation; launch blog: 16.3" }, super: { v: 10.86 }, lightning: { v: 0.0 } } },
   { cat: "Reasoning & knowledge", name: "Apex-Shortlist", unit: "%", scores: {
       motif3: { v: 75.5 },
       dsv4flash: { v: 85.7, n: "Preview" },
@@ -5714,7 +5789,7 @@ window.BENCHMARKS = [
       lfm25: { v: -24.7 },
       inklingsm: { v: -9.0 },
       inkling: { v: 2.1, n: "AA; HF card: 1.0" },
-      muse: { v: 25, n: "AA, full set" }, beam: { v: 13.0, n: "public split; card: 10.8" } } },
+      muse: { v: 25, n: "AA, full set" }, beam: { v: 10.8, n: "public split; launch blog: 13.0" } } },
   { cat: "Reasoning & knowledge", name: "AA-Omniscience accuracy", unit: "%", scores: {
       ml4: { v: 26.0, n: "v1.1; non-hallucination 71.8" },
       lfm3: { v: 7.07, n: "public subset; non-hallucination 92.9" },
@@ -5731,10 +5806,10 @@ window.BENCHMARKS = [
       ultra3: { v: 65.4 },
       kimik3: { v: 74.7, n: "Artificial Analysis, 2026-07-23" },
       glimmer: { v: 80.0, n: "AA" },
-      beam: { v: 79.3, n: "card: 78.2" }, super: { v: 68.63, n: "16 repeats" }, lightning: { v: 52.38 } } },
+      beam: { v: 78.2, n: "launch blog: 79.3" }, super: { v: 68.63, n: "16 repeats" }, lightning: { v: 52.38 } } },
   { cat: "Long context & instructions", name: "LongBench v2", unit: "%", scores: {
       ultra3: { v: 61.9, n: "≤ 1M" },
-      qwen38: { v: 66.3 }, beam: { v: 66.9, n: "card: 67.5" } } },
+      qwen38: { v: 66.3 }, beam: { v: 67.5, n: "launch blog: 66.9" } } },
   { cat: "Long context & instructions", name: "GraphWalks (≤1M)", unit: "%", scores: { super: { v: 89.71 }, gemma4: { v: 82.3, n: "<128K only (max context 256K), F1, no thinking" } } },
   { cat: "Long context & instructions", name: "RULER (1M)", unit: "%", scores: {
       ultra3: { v: 94.7 }, lightning: { v: 91.52 } } },
@@ -5752,7 +5827,7 @@ window.BENCHMARKS = [
       qwen38: { v: 82.8 },
       inkling: { v: 79.8 },
       glimmer: { v: 77.0 },
-      beam: { v: 79.7, n: "card: 79.6" }, super: { v: 70.86, n: "strict" }, lightning: { v: 72.0, n: "loose" } } },
+      beam: { v: 79.6, n: "launch blog: 79.7" }, super: { v: 70.86, n: "strict" }, lightning: { v: 72.0, n: "loose" } } },
 
   { cat: "Multimodal", name: "BabyVision", unit: "%", cmp: false, scores: {
       kimik31: { v: 95.4, n: "with Python" },
@@ -5803,7 +5878,7 @@ window.BENCHMARKS = [
   { cat: "Reasoning & knowledge", name: "SimpleQA Verified", unit: "%", scores: {
       dsv4flash: { v: 34.1, n: "Preview" },
       dsv4pro: { v: 57.9, n: "Preview" },
-      inklingsm: { v: 20.6 }, inkling: { v: 43.9 } } },
+      inklingsm: { v: 20.6 }, inkling: { v: 43.9 }, beam: { v: 41.8 } } },
   { cat: "Long context & instructions", name: "BEAM-128K", unit: "%", scores: { glimmer: { v: 65.1 } } },
   { cat: "Multilingual", name: "MMLU-ProX", unit: "%", cmp: false, scores: {
       ultra3: { v: 83.0, n: "10 languages" },
@@ -6014,6 +6089,6 @@ window.SAFETY = [
   { id: "glimmer", t: "CIMemories violation 26.4% (lower is better) at 64.8% coverage; Siren AgentDojo attack success 28.4% at 94.2% utility; PrivacyLens leakage 49.2% (high reasoning).", s: "R" },
   { id: "inkling", t: "FORTRESS adversarial 78.0% and benign 95.9% (higher is better), StrongREJECT 98.6%. Thinking Machines concluded Inkling gives no material uplift beyond existing open weights.", s: "B" },
   { id: "muse", t: "FORTRESS adversarial ARS 5.8 / over-refusal 17.4 (lower is better). StrongREJECT v2 adaptive attack success 0.5%.", s: "C" },
-  { id: "beam", t: "Iris Safety Evaluations (conversational): 88.9% refusal or pivot on harmful requests, 81.5% compliance on harmless ones, averaged across turns and harm categories. Reflection places this on the observed harmful/harmless Pareto frontier.", s: "R+C" },
+  { id: "beam", t: "Iris Safety Evaluations (conversational): 88.9% refusal or pivot on harmful requests, 81.5% compliance on harmless ones, averaged across turns and harm categories. Reflection places this on the observed harmful/harmless Pareto frontier. Under its Open Safety Framework, Reflection rates Beam \"Limited\" in all four systemic-risk categories (biological, chemical, loss of control, cyber offense). The model report's §7 adds prompt-injection, child-safety and third-party evaluations (Gray Swan, Irregular).", s: "R+C" },
   { id: "super", t: "Safety SFT on the Ultra blend plus dual-use CBRNE and demographic-bias data. No aggregate safety score in the report.", s: "R" },
 ];

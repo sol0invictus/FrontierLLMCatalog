@@ -796,6 +796,10 @@ footer.wrap { padding-block: 2.5rem 1.5rem; }
 .ab-table th.ab-v, .ab-table td.ab-v { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ab-table td.ab-v.lo { color: var(--ink-3); }
 .ab-table td.ab-v.ext { font-style: italic; }
+.ab-table td.ab-v.best { font-weight: 600; }
+.bench td.bset { color: var(--ink-3); font-size: 0.78rem; line-height: 1.35; overflow-wrap: anywhere; }
+.bench th .bsize { display: block; font-weight: 400; color: var(--ink-3); font-size: 0.72rem; }
+.chart-note.pad { padding: 0 1rem 0.9rem; margin: 0.6rem 0 0; }
 .ab-table td.ab-t { min-width: 15rem; }
 .ab-table .ab-note { display: block; color: var(--ink-3); font-size: 0.75rem; margin-top: 0.15rem; }
 .ab-table td.ab-vs { color: var(--ink-3); white-space: nowrap; }

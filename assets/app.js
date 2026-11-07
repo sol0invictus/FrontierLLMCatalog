@@ -144,22 +144,48 @@
     return `<div class="ab-chart">${out.join("")}</div><div class="legend-row tight">${legend}</div>`;
   }
   function ablationsBlock(m) {
+    /* heat: "ratio" (default; × savings, shaded on a log scale), "delta" (signed
+       differences, gains shaded, regressions grey) or "none". unit and digits may
+       be per column (arrays). best: per-column "high" | "low" bolds the best cell. */
     return (m.ablations || []).map((a) => {
-      const unit = a.unit || "";
-      const all = a.rows.flatMap((r) => r.v).filter((v) => v > 1);
-      const top = Math.log(Math.max(...all, 1.0001));
-      const cell = (v, ext) => {
-        const k = v > 1 ? Math.min(Math.log(v) / top, 1) : 0;
-        const pct = v > 1 ? Math.round(8 + 52 * k) : 0;
-        const style = pct ? ` style="background:color-mix(in srgb, var(--accent) ${pct}%, transparent)${pct > 38 ? ";color:var(--heat-hi-ink)" : ""}"` : "";
-        return `<td class="ab-v${v < 1 ? " lo" : ""}${ext ? " ext" : ""}"${style}${ext ? ' title="Extrapolated past the end of a curve"' : ""}>${v.toFixed(2)}${unit}</td>`;
+      const heat = a.heat || "ratio";
+      const perCol = (x, i, d) => (Array.isArray(x) ? x[i] : x) ?? d;
+      const unitOf = (i) => perCol(a.unit, i, "");
+      const digitsOf = (i) => perCol(a.digits, i, heat === "delta" ? 1 : 2);
+      const nums = a.rows.flatMap((r) => r.v).filter((v) => typeof v === "number");
+      const top = heat === "ratio" ? Math.log(Math.max(...nums.filter((v) => v > 1), 1.0001)) : Math.max(...nums.map(Math.abs), 1e-9);
+      const bestOf = a.cols.map((_, i) => {
+        const dir = a.best && a.best[i];
+        const col = a.rows.map((r) => r.v[i]).filter((v) => typeof v === "number");
+        return !dir || !col.length ? null : dir === "low" ? Math.min(...col) : Math.max(...col);
+      });
+      const fmt = (v, i, d) => {
+        if (typeof v !== "number") return "—";
+        const s = v.toFixed(d ?? digitsOf(i));
+        return (heat === "delta" && v > 0 ? "+" : "") + s.replace("-", "−") + unitOf(i);
       };
-      const row = (r, foot) => `<tr class="${r.verdict === "rejected" ? "ab-rej" : ""}"><th scope="row">${esc(r.k)}</th><td class="ab-t">${esc(r.t)}${r.note ? `<span class="ab-note">${esc(r.note)}</span>` : ""}</td><td class="ab-vs">${esc(r.vs || "")}</td>${r.v.map((v, i) => foot ? `<td class="ab-v ab-tot">${v.toFixed(1)}${unit}</td>` : cell(v, (r.ext || []).includes(i))).join("")}<td>${r.verdict ? `<span class="ab-verdict ${r.verdict}">${r.verdict === "rejected" ? "Rejected" : "Kept"}</span>` : ""}</td></tr>`;
+      const cell = (v, i, ext) => {
+        if (typeof v !== "number") return `<td class="ab-v lo">—</td>`;
+        let pct = 0, lo = false;
+        if (heat === "ratio") { pct = v > 1 ? Math.round(8 + 52 * Math.min(Math.log(v) / top, 1)) : 0; lo = v < 1; }
+        else if (heat === "delta") { pct = v > 0 ? Math.round(8 + 52 * Math.min(v / top, 1)) : 0; lo = v < 0; }
+        const style = pct ? ` style="background:color-mix(in srgb, var(--accent) ${pct}%, transparent)${pct > 38 ? ";color:var(--heat-hi-ink)" : ""}"` : "";
+        const best = bestOf[i] !== null && v === bestOf[i];
+        return `<td class="ab-v${lo ? " lo" : ""}${ext ? " ext" : ""}${best ? " best" : ""}"${style}${ext ? ' title="Extrapolated past the end of a curve"' : ""}>${fmt(v, i)}</td>`;
+      };
+      const all = a.rows.concat(a.total ? [a.total] : []);
+      const hasT = all.some((r) => r.t), hasVs = all.some((r) => r.vs), hasVerdict = all.some((r) => r.verdict);
+      const heads = a.heads || ["Step", "Change", "Against"];
+      const row = (r, foot) => `<tr class="${r.verdict === "rejected" ? "ab-rej" : ""}"><th scope="row">${esc(r.k)}${!hasT && r.note ? `<span class="ab-note">${esc(r.note)}</span>` : ""}</th>${hasT ? `<td class="ab-t">${esc(r.t || "")}${r.note ? `<span class="ab-note">${esc(r.note)}</span>` : ""}</td>` : ""}${hasVs ? `<td class="ab-vs">${esc(r.vs || "")}</td>` : ""}${r.v.map((v, i) => foot ? `<td class="ab-v ab-tot">${fmt(v, i, heat === "ratio" ? 1 : undefined)}</td>` : cell(v, i, (r.ext || []).includes(i))).join("")}${hasVerdict ? `<td>${r.verdict ? `<span class="ab-verdict ${r.verdict}">${r.verdict === "rejected" ? "Rejected" : "Kept"}</span>` : ""}</td>` : ""}</tr>`;
+      const hasExt = a.rows.some((r) => (r.ext || []).length);
+      const foot = a.cols.length === 0 ? "" : heat === "ratio"
+        ? `Shading grows with the saving; grey values below 1${unitOf(0)} are losses${hasExt ? "; italic cells are extrapolated" : ""}.`
+        : heat === "delta" ? "Shading grows with the gain; grey values are regressions." : (a.best ? "Bold marks the best value in each column." : "");
       return `<div class="panel pad ab"><h3>${esc(a.title)}${src(a.s)}</h3><p class="ab-setup">${esc(a.setup)}</p>
         ${a.chart ? ablationChart(a.chart) : ""}
-        <div class="scroll"><table class="grid ab-table"><thead><tr><th scope="col">Step</th><th scope="col">Change</th><th scope="col">Against</th>${a.cols.map((c) => `<th scope="col" class="ab-v">${esc(c)}</th>`).join("")}<th scope="col">Result</th></tr></thead>
+        <div class="scroll"><table class="grid ab-table"><thead><tr><th scope="col">${esc(heads[0])}</th>${hasT ? `<th scope="col">${esc(heads[1])}</th>` : ""}${hasVs ? `<th scope="col">${esc(heads[2])}</th>` : ""}${a.cols.map((c) => `<th scope="col" class="ab-v">${esc(c)}</th>`).join("")}${hasVerdict ? `<th scope="col">Result</th>` : ""}</tr></thead>
         <tbody>${a.rows.map((r) => row(r)).join("")}</tbody>${a.total ? `<tfoot>${row(a.total, true)}</tfoot>` : ""}</table></div>
-        <p class="chart-note">Shading grows with the saving; grey values below 1${unit} are losses; italic cells are extrapolated.</p>
+        ${foot ? `<p class="chart-note">${foot}</p>` : ""}
         ${facts(a.notes)}</div>`;
     }).join("");
   }
@@ -614,7 +640,7 @@
       html += `<div class="brow"><span class="bn">${esc(b.name)}${b.unit === "elo" ? " " : ""}</span>${bar}<span class="bv">${val}</span><span class="bnote">${s.n ? esc(s.n) : ""}</span></div>`;
     }
     if (group) html += `</div>`;
-    const base = window.BASE_BENCHMARKS.models.includes(m.id) ? baseTable([m.id]) : "";
+    const base = m.baseBench ? modelBaseTable(m.baseBench) : window.BASE_BENCHMARKS.models.includes(m.id) ? baseTable([m.id]) : "";
     const safety = window.SAFETY.find((x) => x.id === m.id);
     return `<div class="panel pad">
       <p class="chart-note">${esc(m.benchSource.t)}${src(m.benchSource.s)}</p>
@@ -652,6 +678,21 @@
     return `<div class="bench-controls"><label for="bench-shared"><input type="checkbox" id="bench-shared" ${benchShared ? "checked" : ""}> Only shared benchmarks</label></div>
       <div class="panel scroll">${html}</div>
       <p class="chart-note" style="margin-top:0.75rem">${esc(a.name)}: ${esc(a.benchSource.t)}${src(a.benchSource.s)}<br>${esc(b.name)}: ${esc(b.benchSource.t)}${src(b.benchSource.s)}</p>`;
+  }
+
+  /* A model's own base-model table (m.baseBench): its lab's comparison, with
+     the lab's baselines as extra columns. rows: { cat?, k, set, v: [...], fromOwn: [col idx] }. */
+  function modelBaseTable(B) {
+    let group = null, html = "";
+    for (const r of B.rows) {
+      if (r.cat && r.cat !== group) { group = r.cat; html += `<tr class="group"><th colspan="${B.cols.length + 2}" scope="colgroup">${esc(group)}</th></tr>`; }
+      const nums = r.v.filter((v) => typeof v === "number");
+      const best = nums.length > 1 ? Math.max(...nums) : null;
+      html += `<tr><th scope="row">${esc(r.k)}</th><td class="bset">${esc(r.set || "")}</td>${r.v.map((v, i) => typeof v !== "number" ? `<td><span class="nc">—</span></td>`
+        : `<td><div class="score${v === best ? " best" : ""}"><span class="sv">${v}${(r.fromOwn || []).includes(i) ? "†" : ""}</span><span class="sbar"><span style="width:${Math.min(100, Math.max(v, 0.5)).toFixed(2)}%"></span></span></div></td>`).join("")}</tr>`;
+    }
+    return `<table class="grid bench"><thead><tr><th scope="col">Benchmark</th><th scope="col">Setting</th>${B.cols.map((c, i) => `<th scope="col">${esc(c)}${B.sizes ? `<span class="bsize">${esc(B.sizes[i])}</span>` : ""}</th>`).join("")}</tr></thead><tbody>${html}</tbody></table>
+      <p class="chart-note pad">${esc(B.t)}${src(B.s)}</p>`;
   }
 
   function baseTable(ids) {
