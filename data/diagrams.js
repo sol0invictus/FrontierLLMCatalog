@@ -845,7 +845,10 @@ window.DIAGRAMS = {
     },
     outputs: [
       { l: "Final RMSNorm" },
-      { l: "LM head", s: "hidden ÷ 16 (μP), no softcap", n: true },
+      { row: [
+        { l: "LM head", s: "hidden ÷ 16 (μP), no softcap", n: true },
+        { l: "MTP stack", s: "8 layers (6 SWA + 2 global)", n: true },
+      ] },
     ],
   },
 

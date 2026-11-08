@@ -3924,7 +3924,7 @@ window.MODELS = [
       mixer: { v: "Attention only (sliding window + global)", s: "B" },
       heads: { v: "32 Q / 8 KV / 128 on both SWA and global layers (Inkling uses 16 KV on SWA)", s: "C" },
       pattern: { v: "5 : 1 — window 512; 35 SWA + 7 global", s: "C" },
-      position: { v: "No RoPE: learned relative position bias (16 coefficients per head over a bank of distance profiles, 1024 extent); log scaling 1 + 0.1·ln(n/128K) past 128K on global layers", s: "C" },
+      position: { v: "No RoPE. Learned relative position bias: each token projects to 16 coefficients per head that mix a learned bank of bias-vs-distance profiles (512 distances on SWA layers, the window; 1024 on global layers, rel_extent). Global layers also scale q and the bias by 1 + 0.1·ln(n/128K) past 128K tokens", s: "C" },
       attnExtras: { v: "Kernel-4 short convs on K, V and both branch outputs; QK-norm; 1/head_dim attention scale (same block as Inkling)", s: "B+C" },
       ssm: { v: "—", s: "" },
       moe: { v: "256 / top-6", s: "B" },
@@ -3936,7 +3936,7 @@ window.MODELS = [
       act: { v: "SwiGLU", s: "C" },
       norm: { v: "Pre-norm RMSNorm, plain residual; branch outputs pass a short causal conv before rejoining", s: "B+C" },
       head: { v: "RMSNorm on token embeddings; hidden ÷ 16 before the LM head (μP readout, 16 = 4096/256); no softcap", s: "C" },
-      mtp: { v: "Not specified in the card", s: "" },
+      mtp: { v: "8-layer MTP stack (6 SWA + 2 global, dense FFNs), in config.json (mtp_config) and the weights. The cards do not mention it", s: "C" },
       kv: { v: "28 KiB per token from 7 global layers (2 × 8 × 128 × 2 B); SWA layers capped at 512 tokens", s: "D" },
       state: { v: "SWA ring ≈ 70 MiB (35 × 512 tokens × 4 KiB) plus conv states", s: "D" },
       precision: { v: "BF16, MXFP8 and NVFP4 supported; BF16 and NVFP4 checkpoints released", s: "B+C" },
@@ -7823,7 +7823,10 @@ window.DIAGRAMS = {
     },
     outputs: [
       { l: "Final RMSNorm" },
-      { l: "LM head", s: "hidden ÷ 16 (μP), no softcap", n: true },
+      { row: [
+        { l: "LM head", s: "hidden ÷ 16 (μP), no softcap", n: true },
+        { l: "MTP stack", s: "8 layers (6 SWA + 2 global)", n: true },
+      ] },
     ],
   },
 
