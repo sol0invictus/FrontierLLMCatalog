@@ -76,6 +76,7 @@ window.LAYER_KINDS = {
   linear: { label: "Linear attention (KDA / Gated DeltaNet)", slot: 6 },
   sparse: { label: "Sparse global attention (top-k selected)", slot: 7 },
   conv: { label: "Gated short convolution", slot: 8 },
+  attn: { label: "Attention, local/global split not published", slot: 9 },
 };
 
 window.MODELS = [
@@ -538,6 +539,188 @@ window.MODELS = [
       ],
       notes: [
         { t: "Safety RL hill-climbs on content-safety evals with iterative checkpoint evaluation and mitigation.", s: "R" },
+      ],
+    },
+  },
+
+  /* ------------------------------------------------------------------ */
+  {
+    id: "inkling2s",
+    glance: {"date": "2026-11-05", "attn": "Local + global", "moe": "384 → 8", "tokens": "12.6T", "report": "Blog + card", "sig": "Second Inkling generation: a ViT encoder replaces the encoder-free input, 68-hour NVFP4 pretrain, one joint RL run"},
+    benchSource: { s: "B", t: "Thinking Machines launch post and the model card on its site (tier 2; the card adds about a dozen rows), effort 0.99 (xhigh), temperature 1.0, 1M-token max trajectory (Inkling-Small used 256K). The lab takes most scores from the benchmark owners: Artificial Analysis, Scale AI, Vals, Datacurve, Surge, Mercor and others." },
+    name: "Inkling 2 Small",
+    org: "Thinking Machines Lab",
+    released: "2026-11-05",
+    license: "Closed weights at release (Apache 2.0 planned after external safety testing)",
+    params: { total: "594B", active: "17B" },
+    contextShort: "1M",
+    modalitiesShort: "Text, image → text",
+    tagline:
+      "Thinking Machines' second-generation Inkling, pretrained from scratch: 48 MoE layers routing to 8 of 384 experts, 594B / 17B, a 292M Perception Encoder ViT in place of Inkling's encoder-free input, and a new tokenizer. Pretraining took 12.6T tokens in four phases, the first a 68-hour NVFP4 run on GB300 racks. One joint RL run followed (1,075 steps, 9 days). Available on Tinker now; weights to follow under Apache 2.0.",
+    disclosure: { arch: "partial", pretrain: "partial", sft: "partial", rl: "detailed" },
+    docs: [
+      { kind: "B", label: "Introducing Inkling 2 Small (launch post)", url: "https://thinkingmachines.ai/news/inkling-2-small/" },
+      { kind: "B", label: "Inkling 2 Small model card (Thinking Machines site)", url: "https://thinkingmachines.ai/model-card/inkling-2-small/" },
+      { kind: "B", label: "Tinker docs: models and pricing", url: "https://tinker-docs.thinkingmachines.ai/tinker/models/models_and_pricing/" },
+      { kind: "B", label: "A safe path to open weights (release policy)", url: "https://thinkingmachines.ai/blog/a-safe-path-to-open-weights/" },
+      { kind: "C", label: "tinker-cookbook: hyperparam_utils.py (hidden size, LoRA counts)", url: "https://github.com/thinking-machines-lab/tinker-cookbook/blob/main/tinker_cookbook/hyperparam_utils.py" },
+      { kind: "C", label: "tinker-cookbook: model_info.py and tokenizer_utils.py", url: "https://github.com/thinking-machines-lab/tinker-cookbook/blob/main/tinker_cookbook/model_info.py" },
+      { kind: "C", label: "tml-renderers 0.4.1 (H200K tokenizer)", url: "https://pypi.org/project/tml-renderers/" },
+      { kind: "X", label: "Elie Bakouch on X (launch reaction)", url: "https://x.com/eliebakouch/status/2118512391331729860" },
+    ],
+    layers: Array.from({ length: 48 }, () => ({ mixer: "attn", ffn: "moe" })),
+    layersNote: "48 layers (model card), all MoE: the cookbook's MLP LoRA count fits 48 MoE layers with no dense layer. The card says attention mixes local and global layers but not in what pattern, and config.json is not out yet, so the strip does not split them.",
+    kv: null,
+    specs: {
+      params: { v: "594B / 17B", s: "B" },
+      sparsity: { v: "2.9% (17B / 594B)", s: "D" },
+      layers: { v: "48 (model card), all MoE (cookbook LoRA count)", s: "B+C+D" },
+      hidden: { v: "4608", s: "C" },
+      vocab: { v: "201,024 rows (padded; unembed LoRA count 205,632 − 4608). New H200K tokenizer: 199,998 ordinary tokens, 79,698 of them shared with Inkling's o200k", s: "C+D" },
+      context: { v: "Up to 1M (model card); Tinker serves 64K and 256K", s: "B" },
+      mixer: { v: "Attention, a hybrid of local and global layers", s: "B" },
+      heads: { v: "Not disclosed. The cookbook's attention LoRA count (48,896 per layer at rank 1) fits several head layouts", s: "C+D" },
+      pattern: { v: "Not disclosed", s: "" },
+      position: { v: "Not disclosed (Inkling uses a learned relative bias and no RoPE)", s: "" },
+      attnExtras: { v: "Not disclosed", s: "" },
+      ssm: { v: "—", s: "" },
+      moe: { v: "384 / top-8", s: "B" },
+      shared: { v: "None: the cookbook's MLP LoRA count fits exactly with no shared expert (Inkling has 2)", s: "C+D" },
+      expertDim: { v: "2304 (d/2), from the cookbook's MLP LoRA count", s: "C+D" },
+      latent: { v: "Not disclosed", s: "" },
+      routing: { v: "Top-8 of 384; router details not disclosed", s: "B" },
+      dense: { v: "None (48 MoE layers fit the LoRA count exactly)", s: "C+D" },
+      act: { v: "Not disclosed", s: "" },
+      norm: { v: "Not disclosed", s: "" },
+      head: { v: "Not disclosed", s: "" },
+      mtp: { v: "A drafter exists: sampling runs prefill, draft and verify on CUDA graphs. Its form is not disclosed", s: "B" },
+      kv: { v: "Not computable until heads and the local/global split are published. Tinker offers an NVFP4 KV-cache variant", s: "B" },
+      state: { v: "Not disclosed", s: "" },
+      precision: { v: "Pretrained natively in NVFP4; MXFP8 and NVFP4 supported. No weights released yet", s: "B" },
+      modalities: { v: "Text and image (40–4096 px per side) in; text out. No audio, unlike Inkling and Inkling-Small", s: "B" },
+      encoders: { v: "292M vision encoder based on Perception Encoder: 20×20-pixel patches, 2×2 spatial pooling, patches interleaved with text tokens", s: "B" },
+    },
+    paramBreakdown: {
+      s: "B+C+D",
+      note: "Derived. Experts: 48 layers × 384 × 3 × 4608 × 2304 (cookbook hidden size and LoRA fit). Embedding + LM head: 2 × 201,024 × 4608, assuming they are untied. Vision: launch post. The rest is 594B minus these. Active check: 8 experts per layer (12.2B) plus the 4.8B remainder gives 17.0B, matching the stated 17B without counting embeddings.",
+      parts: [
+        { label: "Routed experts", b: 587.1 },
+        { label: "Attention, routers, norms (remainder)", b: 4.8 },
+        { label: "Embedding + LM head", b: 1.9 },
+        { label: "Vision encoder", b: 0.3 },
+      ],
+    },
+    highlights: [
+      { t: "<b>Encoder-free no more.</b> Inkling and Inkling-Small embed 40×40 patches with a light hMLP. Inkling 2 Small uses a 292M ViT based on Perception Encoder (20×20 patches, 2×2 pooling) and drops audio input.", s: "B" },
+      { t: "<b>More, narrower experts and no shared expert.</b> 384 experts of width 2304, top-8, in all 48 layers. Inkling-Small has 256 experts of width 2048, top-6, plus 2 shared and 2 dense layers.", s: "B+C+D" },
+      { t: "<b>Fast NVFP4 pretrain.</b> The 8.4T-token first phase ran for 68 hours on GB300 NVL72 racks, natively in NVFP4. The whole pretrain was 12.6T tokens, far less data than the models it is compared with.", s: "B+X" },
+      { t: "<b>One joint RL run.</b> 1,075 steps, 17M+ rollouts, 3T+ tokens and over 4 × 10²³ FLOPs on 2,048 GPUs in 9 days. Inkling ran separate reasoning and agentic RL runs and merged them with multi-teacher distillation.", s: "B" },
+      { t: "<b>New tokenizer.</b> H200K keeps o200k's 199,998-token size, but only 40% of its tokens appear in o200k.", s: "C+D" },
+      { t: "<b>Lowest code loss of the open models it tested.</b> 0.2030 bits per byte on Thinking Machines' held-out internal code (cutoff 2026-06), against 0.2068 for Kimi K3.1 Pro. Post-trained-only rivals were \"base-recovered\" with a short pretrain-format fine-tune first.", s: "B" },
+    ],
+    refs: {
+      arch: [
+        { label: "Model card §2", url: "https://thinkingmachines.ai/model-card/inkling-2-small/", s: "B" },
+        { label: "Launch post: Vision interpretation and creation", url: "https://thinkingmachines.ai/news/inkling-2-small/#vision-interpretation-and-creation", s: "B" },
+        { label: "tinker-cookbook hyperparam_utils.py", url: "https://github.com/thinking-machines-lab/tinker-cookbook/blob/main/tinker_cookbook/hyperparam_utils.py", s: "C" },
+      ],
+      pretrain: [{ label: "Launch post: Training Inkling 2 Small", url: "https://thinkingmachines.ai/news/inkling-2-small/#training-inkling-2-small", s: "B" }],
+      sft: [{ label: "Launch post: Training Inkling 2 Small; Safety and alignment", url: "https://thinkingmachines.ai/news/inkling-2-small/#training-inkling-2-small", s: "B" }],
+      rl: [
+        { label: "Launch post: Training Inkling 2 Small", url: "https://thinkingmachines.ai/news/inkling-2-small/#training-inkling-2-small", s: "B" },
+        { label: "Launch post: Agentic coding and autoresearch", url: "https://thinkingmachines.ai/news/inkling-2-small/#agentic-coding-and-autoresearch", s: "B" },
+        { label: "Tinker docs: StableReinforce", url: "https://tinker-docs.thinkingmachines.ai/tinker/losses/stable-reinforce/", s: "B" },
+      ],
+      tricks: [{ label: "Launch post", url: "https://thinkingmachines.ai/news/inkling-2-small/", s: "B" }],
+      bench: [
+        { label: "Model card §5", url: "https://thinkingmachines.ai/model-card/inkling-2-small/", s: "B" },
+        { label: "Launch post: Benchmarking", url: "https://thinkingmachines.ai/news/inkling-2-small/#benchmarking-inkling-2-small", s: "B" },
+      ],
+    },
+    tricks: [
+      { cat: "Numerics", name: "Native NVFP4 pretraining", t: "Pretraining ran in NVFP4 on Blackwell; the recipe is promised in a follow-up post. RL also trains and samples the MoE in NVFP4.", s: "B" },
+      { cat: "Data", name: "Trajectory-heavy late phases", t: "Phases 3 and 4 switch to the deployment format and are mostly agent and reasoning trajectories sampled from Kimi K3 and Thinking Machines' own models, filtered for correctness and alignment.", s: "B" },
+      { cat: "Data", name: "Alignment-filtered midtraining", t: "Traces that showed misbehavior were removed from midtraining, and traces of honest, aligned behavior were added.", s: "B" },
+      { cat: "RL", name: "StableReinforce", t: "Asynchronous RL with a score-centering objective that tolerates staleness; median policy staleness was 17 updates.", s: "B" },
+      { cat: "RL", name: "Effort conditioning + length penalty", t: "Each rollout samples an effort level to condition on, and the reward carries a length penalty, so the model learns to trade speed for thoroughness.", s: "B" },
+      { cat: "RL", name: "Process graders for code", t: "Many coding tasks add an agentic RL grader that judges how the model worked, not only whether unit tests pass.", s: "B" },
+      { cat: "RL", name: "Compaction training", t: "Training uses a 256K context and teaches context compaction for longer trajectories (p99 of 1.5M tokens and 4 hours per rollout).", s: "B" },
+      { cat: "RL", name: "Rewards for honesty", t: "A general alignment reward penalizes misbehavior on every task. Dedicated environments reward giving up on impossible tasks. Proper scoring rules apply to forecasting tasks.", s: "B" },
+      { cat: "Post-training", name: "Conduct-spec self-distillation", t: "On-policy self-distillation from a teacher prompted with a conduct spec, so the model follows those principles without being prompted.", s: "B" },
+      { cat: "Infrastructure", name: "Sticky routing + DRAM KV offload", t: "Keeps prefix-cache hits above 93% on long agent rollouts, which allowed a 5:3 sampler-to-trainer ratio at long context.", s: "B" },
+      { cat: "Infrastructure", name: "Synchronous tool-call monitor", t: "After an RL rollout got around a network block through a third-party service, the run was paused. Thinking Machines then added a monitor that checks each tool call against the task's policy before it runs.", s: "B" },
+    ],
+    pretrain: {
+      headline: "12.6T tokens in four phases, from an 8.4T broad mix down to 34B tokens of the best agent trajectories, at contexts up to 1M.",
+      stats: [
+        { k: "Tokens", v: "≈ 12.6T (8.4T + 3.8T + 320B + 34B)", s: "B+D" },
+        { k: "Hardware", v: "NVIDIA GB300 NVL72, high expert parallelism", s: "B" },
+        { k: "Precision", v: "NVFP4 throughout", s: "B" },
+        { k: "Phase 1 wall-clock", v: "68 hours", s: "B" },
+        { k: "Data cutoff of the code eval", v: "2026-06", s: "B" },
+      ],
+      stages: [
+        { name: "H1", tokens: "8.4T", tokensB: 8400, detail: "Broad mix of natural language, code and image data. 68 hours on GB300 NVL72, in NVFP4.", s: "B" },
+        { name: "H2", tokens: "3.8T", tokensB: 3800, detail: "Higher-quality, newer data the model had not seen, at 512K context.", s: "B" },
+        { name: "H3", tokens: "≈ 320B", tokensB: 320, detail: "Reasoning and agent trajectories in the deployment format at 1M context, with replayed pretraining data.", s: "B" },
+        { name: "H4", tokens: "≈ 34B", tokensB: 34, detail: "Only the highest-quality agent trajectories.", s: "B" },
+      ],
+      mixes: [],
+      notes: [
+        { t: "Held-out internal code, bits per byte: Inkling 2 Small pretrained 0.2030, post-trained 0.2080, Kimi K3.1 Pro 0.2068, DeepSeek V4.1 Flash 0.2209, DeepSeek V4 Pro Base 0.2335. Models released only post-trained were first fine-tuned on pretrain-format data (\"base-recovered\"), which the lab checked recovers most of the base loss.", s: "B" },
+        { t: "Thinking Machines calls it part of a ladder of model sizes trained with similar recipes and predictable scaling.", s: "B" },
+        { t: "Elie Bakouch puts the whole training at a few dozen days, on far less compute and data than the models it competes with.", s: "X" },
+      ],
+    },
+    sft: {
+      headline: "No separate SFT stage is described. Deployment-format trajectories enter in pretraining phases 3 and 4, and alignment traces are filtered in midtraining.",
+      stats: [
+        { k: "Trajectory sources", v: "Kimi K3 and earlier Thinking Machines models", s: "B" },
+        { k: "Filtering", v: "Correctness and alignment", s: "B" },
+      ],
+      stages: [],
+      mixes: [],
+      notes: [
+        { t: "Inkling-Small's preview was post-trained with on-policy distillation from Inkling. Inkling 2 Small drops multi-teacher distillation for one joint RL run, but keeps on-policy self-distillation from a conduct-spec-prompted teacher for alignment.", s: "B" },
+      ],
+    },
+    rl: {
+      headline: "One joint asynchronous RL run across every task family: 1,075 steps, 17M+ rollouts, 3T+ tokens, 2,048 GPUs, 9 days.",
+      stats: [
+        { k: "Compute", v: "Over 4 × 10²³ FLOPs", s: "B" },
+        { k: "GPUs / duration", v: "2,048 / 9 days", s: "B" },
+        { k: "Steps / rollouts", v: "1,075 / 17M+", s: "B" },
+        { k: "Rollout batch", v: "16K", s: "B" },
+        { k: "Tokens per rollout", v: "Median 43K, p99 1.5M", s: "B" },
+        { k: "Rollout duration", v: "Median 8 min, p99 4 h", s: "B" },
+        { k: "Policy staleness", v: "Median 17 updates", s: "B" },
+        { k: "Context", v: "256K, with compaction beyond", s: "B" },
+      ],
+      mixes: [
+        { title: "Task mix by rollouts", s: "B", parts: [
+          { label: "Coding", pct: 38.5 }, { label: "Tool use and general agents", pct: 17.1 }, { label: "Vision", pct: 13.9 },
+          { label: "Office and knowledge work", pct: 9.1 }, { label: "Chat, safety and epistemics", pct: 7.8 }, { label: "STEM and reasoning", pct: 7.0 },
+          { label: "Web and app building", pct: 4.7 }, { label: "Search", pct: 2.0 },
+        ] },
+        { title: "Task mix by tokens", s: "B", parts: [
+          { label: "Coding", pct: 65.0 }, { label: "Office and knowledge work", pct: 13.3 }, { label: "STEM and reasoning", pct: 7.6 },
+          { label: "Web and app building", pct: 7.2 }, { label: "Vision", pct: 3.0 }, { label: "Tool use and general agents", pct: 2.3 },
+          { label: "Search", pct: 1.4 }, { label: "Chat, safety and epistemics", pct: 0.2 },
+        ] },
+      ],
+      methods: [
+        { name: "StableReinforce", t: "Score-centering policy gradient from Tinker, built to tolerate stale rollouts.", s: "B" },
+        { name: "Per-family graders", t: "Hidden unit tests and programmatic checks for code; rubric LLM judges for documents and tool use; reference answers for STEM and vision; pairwise reward models on screenshots of rendered web apps.", s: "B" },
+        { name: "Long-horizon coding", t: "Hundreds of thousands of coding tasks across several agent harnesses and compaction strategies; early checkpoints were tested on OpenCode as Fledge-Alpha.", s: "B" },
+        { name: "Autoresearch tasks", t: "GPU kernel optimization and autonomous post-training of models, across several GPU architectures.", s: "B" },
+        { name: "Calibration", t: "Proper scoring rules on forecasting and uncertainty-sensitive rewards on some QA tasks.", s: "B" },
+      ],
+      notes: [
+        { t: "Training reward and STEM and vision evals rise log-linearly with cumulative learner + sampler FLOPs.", s: "B" },
+        { t: "RL systems: NVFP4 MoE training and sampling, CUDA graphs for prefill, draft and verify, EPLB, and weight transfer over GPUDirect RDMA at 93%+ line rate with a parallelism-invariant checksum.", s: "B" },
+        { t: "Mid-run the monitor caught a rollout reaching a blocked network through a third-party service found with its search tools. The run was paused, environments needing web access were removed, synchronous tool-call monitoring was added, and extra alignment phases followed.", s: "B" },
+        { t: "Fine-tunability was a goal. On an earnings-call analysis RL task with a per-model learning-rate sweep, it reached Inkling-Small's final reward in 75 steps and finished ahead after 200.", s: "B" },
+        { t: "Tinker price: $0.30 in, $1.00 out per 1M tokens, $1.50 per 1M to train at 64K ($3.00 at 256K).", s: "B" },
       ],
     },
   },
@@ -5478,6 +5661,7 @@ window.MODELS = [
  */
 window.BENCHMARKS = [
   { cat: "Agentic coding", name: "SWE-bench Verified", unit: "%", scores: {
+      inkling2s: { v: 82.2 },
       ripple: { v: 76.5, n: "OpenCode" },
       lfm3: { v: 43.4, n: "OpenCode" },
       motif3: { v: 76.2 },
@@ -5493,6 +5677,7 @@ window.BENCHMARKS = [
       super: { v: 71.1, n: "OpenCode, 3-run mean" },
       lightning: { v: 52.2, n: "NeMo Gym" } } },
   { cat: "Agentic coding", name: "SWE-bench Multilingual", unit: "%", scores: {
+      inkling2s: { v: 81.2 },
       lfm3: { v: 23.0, n: "OpenCode" },
       laguna: { v: 78.5, n: "pool harness, avg@4" },
       hy4: { v: 82.9, n: "swe-agent" },
@@ -5502,6 +5687,7 @@ window.BENCHMARKS = [
       ultra3: { v: 67.7 },
       beam: { v: 78.3, n: "launch blog: 78.0" }, super: { v: 67.72, n: "OpenCode" }, lightning: { v: 37.13 } } },
   { cat: "Agentic coding", name: "SWE-bench Pro", unit: "%", cmp: false, scores: {
+      inkling2s: { v: 86.3, n: "v2 Hard, Scale AI; 97.7 on v2 Full" },
       ripple: { v: 61.42, n: "v1.0, OpenCode; 79.1 on v2.0 Hard with Terminus 2" },
       laguna: { v: 59.4, n: "public set, pool harness, avg@4" },
       hy4: { v: 65.7, n: "swe-agent" },
@@ -5517,6 +5703,7 @@ window.BENCHMARKS = [
       beam: { v: 66.1, n: "v1, 731 tasks; 76.5 on the 51-task v2-Hard subset; launch blog: 65.5 / 77.2" },
       super: { v: 51.78, n: "public set, OpenCode" } } },
   { cat: "Agentic coding", name: "Terminal-Bench 2.1", unit: "%", scores: {
+      inkling2s: { v: 85.1, n: "Pi harness; 81.3 with Terminus" },
       ripple: { v: 80.52, n: "blog; card 80.5, also 80.5 with Terminus 2 at 128K" },
       ml4: { v: 90.2, n: "report Table 3" },
       lfm3: { v: 12.92, n: "OpenCode" },
@@ -5544,6 +5731,7 @@ window.BENCHMARKS = [
       super: { v: 60.67, n: "Terminus 2, 8 runs, 3 h timeout" },
       lightning: { v: 24.44 } } },
   { cat: "Agentic coding", name: "DeepSWE v1.1", unit: "%", cmp: false, scores: {
+      inkling2s: { v: 72.1, n: "Datacurve" },
       ripple: { v: 44.3, n: "Terminus 2" },
       kimik31: { v: 75.5, n: "Claude Code harness" },
       ml4: { v: 65.2, n: "preview post: 61.7" },
@@ -5585,6 +5773,7 @@ window.BENCHMARKS = [
       beam: { v: 88.3, n: "model card only; not in the report's tables" }, super: { v: 88.22, n: "v6, 454 problems" } } },
 
   { cat: "Tool use & agents", name: "MCP-Atlas", unit: "%", scores: {
+      inkling2s: { v: 85.0, n: "public set (85.4 full), Scale AI" },
       ripple: { v: 71.67 },
       lfm3: { v: 32.57 },
       hy4: { v: 83.7, n: "public set, April 2026 methodology" },
@@ -5598,6 +5787,7 @@ window.BENCHMARKS = [
       glimmer: { v: 75.5, n: "public 500 tasks, 4 runs" },
       muse: { v: 89.2, n: "Scale AI leaderboard harness" }, beam: { v: 80.8, n: "launch blog: 78.7" } } },
   { cat: "Tool use & agents", name: "τ³-Bench Banking", unit: "%", scores: {
+      inkling2s: { v: 40.4, n: "Artificial Analysis" },
       ripple: { v: 31.27 },
       motif3: { v: 35.3 },
       step5: { v: 42.5 },
@@ -5614,6 +5804,7 @@ window.BENCHMARKS = [
       glimmer: { v: 94.1, n: "TauBench telecom, 4 runs" },
       super: { v: 73.19 }, lightning: { v: 59.65 } } },
   { cat: "Tool use & agents", name: "BrowseComp", unit: "%", cmp: false, scores: {
+      inkling2s: { v: 90.2, n: "with context management" },
       kimik31: { v: 92.1, n: "compaction at 200K, 500 steps, top-p 1.0" },
       ml4: { v: 85.0, n: "internal subset; launch blog: 84.5; SFT checkpoint 75.0" },
       step5: { v: 88.7 },
@@ -5637,6 +5828,7 @@ window.BENCHMARKS = [
       muse: { v: 80.4, n: "361 tasks, 200 steps, 4 attempts" },
       super: { v: 52.14, n: "361 tasks, 100 steps, 3 runs" } } },
   { cat: "Tool use & agents", name: "GDPval-AA v2 (Elo)", unit: "elo", cmp: false, scores: {
+      inkling2s: { v: 1630, n: "v2.1, Artificial Analysis" },
       kimik31: { v: 1846, n: "v2.1, Artificial Analysis" },
       hy4: { v: 1678, n: "official" },
       step5: { v: 1566, n: "v2.1, Artificial Analysis, 2026-09-20" },
@@ -5667,6 +5859,7 @@ window.BENCHMARKS = [
       kimik3: { v: 76.5, n: "official leaderboard" },
       inkling: { v: 45.5 }, muse: { v: 72.8 } } },
   { cat: "Tool use & agents", name: "JobBench", unit: "%", scores: {
+      inkling2s: { v: 70.5 },
       hy4: { v: 61.7 },
       mimo26f: { v: 61.2 },
       step5: { v: 59.0 },
@@ -5676,6 +5869,7 @@ window.BENCHMARKS = [
       mimo26: { v: 62.0 },
       kimik3: { v: 54.3, n: "official leaderboard" }, muse: { v: 61.8 } } },
   { cat: "Tool use & agents", name: "AutomationBench (public)", unit: "%", cmp: false, scores: {
+      inkling2s: { v: 45.6, n: "v1.0.6" },
       ripple: { v: 36.4, n: "public set" },
       kimik31: { v: 73.3, n: "AutomationBench-AA, Artificial Analysis" },
       ml4: { v: 57.8, n: "Artificial Analysis; preview post: 59.9" },
@@ -5693,10 +5887,12 @@ window.BENCHMARKS = [
       kimik3: { v: 30.8, n: "600-task public subset" },
       dsv41: { v: 54.8, n: "v1.0.6 public set; -1017: 60.5" }, beam: { v: 39.3, n: "public split; launch blog: 37.0" } } },
   { cat: "Tool use & agents", name: "DeepSearchQA", unit: "%", scores: {
+      inkling2s: { v: 90.9 },
       kimik3: { v: 95.0, n: "F1" },
       glimmer: { v: 74.6, n: "internal, 4 runs" }, beam: { v: 80.5, n: "discard-all context compaction; launch blog: 80.1" } } },
 
   { cat: "Reasoning & knowledge", name: "GPQA Diamond", unit: "%", scores: {
+      inkling2s: { v: 93.0 },
       ripple: { v: 85.2 },
       kimik31: { v: 94.2 },
       lfm3: { v: 63.37 },
@@ -5720,6 +5916,7 @@ window.BENCHMARKS = [
       glimmer: { v: 83.5, n: "AA" },
       muse: { v: 89.0, n: "AA" }, beam: { v: 90.6, n: "launch blog: 90.5" }, super: { v: 89.52, n: "8 repeats" }, lightning: { v: 76.45 } } },
   { cat: "Reasoning & knowledge", name: "HLE, text, no tools", unit: "%", scores: {
+      inkling2s: { v: 44.1, n: "Artificial Analysis" },
       hy4: { v: 43.4 },
       minimaxm31f: { v: 43.4, n: "text-only subset (2,158)" },
       dsv4flash: { v: 37.8, n: "-0731, text-only subset; Preview 34.8" },
@@ -5750,6 +5947,7 @@ window.BENCHMARKS = [
       beam: { v: 51.2, n: "launch blog only (not in the report); card: 51.1" },
       super: { v: 46.01, n: "Python + web search, internal harness" } } },
   { cat: "Reasoning & knowledge", name: "HLE-Diamond, no tools", unit: "%", scores: {
+      inkling2s: { v: 28.7, n: "Artificial Analysis" },
       kimik31: { v: 39.4 },
       ml4: { v: 17.3, n: "Artificial Analysis" }, muse: { v: 26.1, n: "Scale AI" } } },
   { cat: "Reasoning & knowledge", name: "AIME 2026", unit: "%", scores: {
@@ -5771,6 +5969,7 @@ window.BENCHMARKS = [
       glimmer: { v: 43.6 },
       muse: { v: 58.5, n: "AA" }, beam: { v: 49.2, n: "launch blog: 49.7" }, super: { v: 47.13, n: "subtask accuracy" }, lightning: { v: 32.74 } } },
   { cat: "Reasoning & knowledge", name: "CritPt", unit: "%", scores: {
+      inkling2s: { v: 35.0, n: "v2 hard subset, Artificial Analysis; 55.7 on v2 full" },
       ml4: { v: 26.0, n: "v2 hard subset, Artificial Analysis" },
       motif3: { v: 6.6 },
       hy4: { v: 16.9, n: "official" },
@@ -5785,6 +5984,7 @@ window.BENCHMARKS = [
       dsv4pro: { v: 90.2, n: "Preview" },
       ultra3: { v: 74.9, n: "no tools; 84.8 with tools" }, super: { v: 88.36, n: "16 repeats, no tools" } } },
   { cat: "Reasoning & knowledge", name: "AA-Omniscience Index", unit: "idx", cmp: false, scores: {
+      inkling2s: { v: 16.1, n: "v1.1; non-hallucination rate 73.3%" },
       lfm3: { v: 0.5, n: "public subset" },
       lfm25: { v: -24.7 },
       inklingsm: { v: -9.0 },
@@ -5799,6 +5999,7 @@ window.BENCHMARKS = [
       super: { v: 26.2, n: "non-hallucination 69.96" }, lightning: { v: 17.47, n: "non-hallucination 68.88" } } },
 
   { cat: "Long context & instructions", name: "AA-LCR", unit: "%", scores: {
+      inkling2s: { v: 83.3, n: "v1.1, Artificial Analysis" },
       ripple: { v: 75.0 },
       lfm3: { v: 52.83 },
       motif3: { v: 72.3 },
@@ -5808,6 +6009,7 @@ window.BENCHMARKS = [
       glimmer: { v: 80.0, n: "AA" },
       beam: { v: 78.2, n: "launch blog: 79.3" }, super: { v: 68.63, n: "16 repeats" }, lightning: { v: 52.38 } } },
   { cat: "Long context & instructions", name: "LongBench v2", unit: "%", scores: {
+      inkling2s: { v: 70.6 },
       ultra3: { v: 61.9, n: "≤ 1M" },
       qwen38: { v: 66.3 }, beam: { v: 67.5, n: "launch blog: 66.9" } } },
   { cat: "Long context & instructions", name: "GraphWalks (≤1M)", unit: "%", scores: { super: { v: 89.71 }, gemma4: { v: 82.3, n: "<128K only (max context 256K), F1, no thinking" } } },
@@ -5830,6 +6032,7 @@ window.BENCHMARKS = [
       beam: { v: 79.6, n: "launch blog: 79.7" }, super: { v: 70.86, n: "strict" }, lightning: { v: 72.0, n: "loose" } } },
 
   { cat: "Multimodal", name: "BabyVision", unit: "%", cmp: false, scores: {
+      inkling2s: { v: 68.6, n: "no tools; 93.7 with Python" },
       kimik31: { v: 95.4, n: "with Python" },
       qwen3827: { v: 65.7, n: "85.6 with code interpreter" },
       glm53f: { v: 53.4, n: "no tools; short side ≥ 1.5K px" },
@@ -5847,6 +6050,7 @@ window.BENCHMARKS = [
   { cat: "Multimodal", name: "WorldVQA (tools)", unit: "%", scores: { muse: { v: 49.4 } } },
   { cat: "Multimodal", name: "IntPhys 2", unit: "%", scores: { muse: { v: 68.3 } } },
   { cat: "Multimodal", name: "CharXiv-RQ", unit: "%", scores: {
+      inkling2s: { v: 85.6 },
       kimik31: { v: 89.0 },
       qwen3827: { v: 83.7, n: "90.2 with code interpreter" },
       qwen38fn: { v: 84.6, n: "90.6 with code interpreter" },
@@ -5856,6 +6060,7 @@ window.BENCHMARKS = [
       inkling: { v: 78.1 },
       glimmer: { v: 78.8 }, super: { v: 80.82 } } },
   { cat: "Multimodal", name: "MathVision", unit: "%", scores: {
+      inkling2s: { v: 92.8 },
       qwen3827: { v: 90.0, n: "94.6 with code interpreter" },
       qwen38fn: { v: 90.6, n: "95.7 with code interpreter" },
       gemma4: { v: 85.6 },
@@ -5886,6 +6091,7 @@ window.BENCHMARKS = [
   { cat: "Multilingual", name: "Global-MMLU-Lite", unit: "%", scores: {
       inklingsm: { v: 86.7 }, inkling: { v: 88.7 } } },
   { cat: "Multimodal", name: "MMMU-Pro", unit: "%", cmp: false, scores: {
+      inkling2s: { v: 81.6, n: "Standard 10, AA" },
       kimik31: { v: 84.1, n: "official protocol; 90.0 with Python" },
       step5: { v: 76.0 },
       minimaxm3: { v: 78.1, n: "variant not stated" },
@@ -5894,6 +6100,7 @@ window.BENCHMARKS = [
       kimik3: { v: 81.6, n: "official protocol; 83.4 with Python" },
       glimmer: { v: 74 }, inkling: { v: 73.5, n: "Standard 10, AA" } } },
   { cat: "Multimodal", name: "CharXiv-RQ with Python", unit: "%", scores: {
+      inkling2s: { v: 87.7 },
       kimik31: { v: 93.4, n: "mean of 4 runs" },
       inklingsm: { v: 81.3 },
       kimik3: { v: 91.3 }, inkling: { v: 82.0 } } },
@@ -5901,7 +6108,8 @@ window.BENCHMARKS = [
       qwen3827: { v: 91.1 },
       minimaxm3: { v: 91.6 },
       kimik3: { v: 91.1, n: "version not stated" }, glimmer: { v: 75.8 } } },
-  { cat: "Multimodal", name: "ScreenSpot Pro", unit: "%", scores: { glimmer: { v: 75.4 } } },
+  { cat: "Multimodal", name: "ScreenSpot Pro", unit: "%", scores: {
+      inkling2s: { v: 83.8, n: "long side capped at 4,096 px; 91.5 with Python" }, glimmer: { v: 75.4 } } },
   { cat: "Audio", name: "VoiceBench", unit: "%", scores: {
       inklingsm: { v: 90.1 }, inkling: { v: 91.4 } } },
   { cat: "Audio", name: "MMAU", unit: "%", scores: {
@@ -5913,6 +6121,7 @@ window.BENCHMARKS = [
       dsv4pro: { v: 11.8, n: "-0813" },
       glm53: { v: 28.3, n: "Claude Code, avg@3, 10 h" }, dsv41: { v: 30.0 } } },
   { cat: "Agentic coding", name: "Terminal-Bench 4.0", unit: "%", scores: {
+      inkling2s: { v: 13.1, n: "Artificial Analysis" },
       kimik31: { v: 65.7, n: "Claude Code harness" },
       ml4: { v: 41.0, n: "Artificial Analysis (Coding Agent Index run); preview 28.3 (self-reported)" },
       mimo26f: { v: 28.8 },
@@ -5986,6 +6195,7 @@ window.BENCHMARKS = [
       dsv4flash: { v: 58.6, n: "-0731; Preview 33.0" },
       dsv4pro: { v: 65.3, n: "-0813; Preview 38.3" }, dsv41: { v: 65.6 } } },
   { cat: "Multimodal", name: "Chartography (tools)", unit: "%", scores: {
+      inkling2s: { v: 80.4, n: "with Python; 36.7 without" },
       kimik31: { v: 90.2, n: "with Python, mean of 5 runs" },
       glm53f: { v: 78.0 }, dsv41: { v: 78.9, n: "-1017: 83.0" } } },
   { cat: "Composite", name: "AA Intelligence Index v4.3", unit: "idx", scores: {
@@ -5999,6 +6209,7 @@ window.BENCHMARKS = [
       glm53: { v: 78.1, n: "dominance, run by Proximal, 2026-08-14" },
       kimik3: { v: 81.2, n: "dominance score, 2026-07-16" }, } },
   { cat: "Agentic coding", name: "SWE-Marathon", unit: "%", cmp: false, scores: {
+      inkling2s: { v: 38.8, n: "v1.1" },
       kimik31: { v: 51.7, n: "v1.1, Claude Code harness" },
       glm53: { v: 42.5, n: "v1.1, Claude Code; Z.ai lists Kimi K3 at 48.1 on v1.1" },
       kimik3: { v: 42.0, n: "H20-calibrated branch, Claude Code harness" }, } },
@@ -6011,6 +6222,7 @@ window.BENCHMARKS = [
       minimaxm3: { v: 27.7, n: "archipelago ReAct, Sonnet 4.6 judge" },
       kimik3: { v: 41.0, n: "Mercor leaderboard" }, } },
   { cat: "Agentic coding", name: "PostTrainBench", unit: "%", cmp: false, scores: {
+      inkling2s: { v: 31.9, n: "v1.2, Thoughtful" },
       kimik31: { v: 36.5, n: "v1.2, Claude Code on H20; DeepSeek-V4.1-Flash-1017 as judge" },
       hy4: { v: 35.6, n: "v1.1" },
       minimaxm31f: { v: 39.3, n: "v1.1, Claude Code, 512K" },
@@ -6018,6 +6230,7 @@ window.BENCHMARKS = [
       kimik3: { v: 36.6, n: "Harbor, 3 runs on H20" },
       glm53: { v: 39.8, n: "Claude Code, 3-run weighted mean" }, } },
   { cat: "Agentic coding", name: "FrontierCode 2.0", unit: "%", scores: {
+      inkling2s: { v: 25.4, n: "Artificial Analysis" },
       ml4: { v: 19.7, n: "Cognition, private benchmark" }, } },
   { cat: "Agentic coding", name: "AA Coding Agent Index v2", unit: "%", scores: {
       ml4: { v: 48.3, n: "Artificial Analysis; launch blog: 48, with 47% fewer tokens per task than GLM-5.3; preview post 49.8" }, } },
@@ -6030,10 +6243,12 @@ window.BENCHMARKS = [
   { cat: "Safety", name: "Harmful cyber request refusal", unit: "%", scores: {
       ml4: { v: 96.6, n: "mean of JailbreakBench 97.3, StrongREJECT 92.6, AgentHarm 100 (cyber subsets); preview 95" }, } },
   { cat: "Composite", name: "AA Intelligence Index v5", unit: "idx", scores: {
+      inkling2s: { v: 30.6, n: "v5.0, Artificial Analysis; launch post rounds to 31" },
       ml4: { v: 26, n: "Artificial Analysis, from the model card" }, } },
   { cat: "Tool use & agents", name: "AA-Briefcase", unit: "%", scores: {
       ml4: { v: 42.5, n: "Artificial Analysis; preview post: 1,393 Elo" }, } },
   { cat: "Multimodal", name: "GDP.pdf", unit: "%", scores: {
+      inkling2s: { v: 25.2, n: "Artificial Analysis" },
       kimik31: { v: 34.6, n: "strict pass rate, Gemini-3.5-Flash judge; 85.7 rubric rate with Python" },
       ml4: { v: 17.6, n: "Artificial Analysis" }, } },
   { cat: "Reasoning & knowledge", name: "Beyond-AIME", unit: "%", scores: {
@@ -6049,23 +6264,28 @@ window.BENCHMARKS = [
   { cat: "Safety", name: "KORA Benchmark", unit: "idx", scores: {
       ml4: { v: 1.765, n: "mean score on a 0–2 scale; preview 1.691" }, } },
   { cat: "Tool use & agents", name: "Vals Finance Agent v2.1", unit: "%", scores: {
+      inkling2s: { v: 67.5, n: "Vals" },
       ml4: { v: 61.72, n: "Vals" }, } },
   { cat: "Tool use & agents", name: "Harvey Legal Agent (HLAB v1.1)", unit: "%", cmp: false, scores: {
+      inkling2s: { v: 21.7, n: "Vals" },
       kimik31: { v: 23.7, n: "all-pass rate, 1,251 public tasks, AA Stirrup harness; version not stated" },
       ml4: { v: 15.83, n: "Vals" }, } },
   { cat: "Agentic coding", name: "Terminal-Bench-Science 0.1", unit: "%", scores: {
+      inkling2s: { v: 5.7, n: "Artificial Analysis" },
       kimik31: { v: 38.1, n: "Claude Code harness" }, } },
   { cat: "Agentic coding", name: "BenchCAD (tools)", unit: "%", scores: {
       kimik31: { v: 92.7, n: "1,000-case subset, Claude Code; 72.8 without tools" }, } },
   { cat: "Agentic coding", name: "ExploitBench", unit: "%", scores: {
       kimik31: { v: 74.7, n: "pass@5 max capability, 300 turns" }, } },
   { cat: "Tool use & agents", name: "BioMysteryBench", unit: "%", scores: {
+      inkling2s: { v: 70.0, n: "Vals" },
       kimik31: { v: 80.6, n: "v11, Kimi Code, Kimi K3 judge" }, } },
   { cat: "Tool use & agents", name: "OfficeQA Pro v2", unit: "%", scores: {
       kimik31: { v: 64.4, n: "Claude Code; PDFs as page images; v1: 67.4" }, } },
   { cat: "Tool use & agents", name: "OSWorld v2.1", unit: "%", scores: {
       kimik31: { v: 79.6, n: "Kimi Agent harness" }, } },
   { cat: "Multimodal", name: "PerceptionBench", unit: "%", scores: {
+      inkling2s: { v: 64.7 },
       kimik31: { v: 68.3, n: "Moonshot's atomic-perception benchmark" }, } },
 ];
 
@@ -6083,6 +6303,7 @@ window.BASE_BENCHMARKS = {
 
 /* Safety suites differ per lab, so they are listed, not tabulated. */
 window.SAFETY = [
+  { id: "inkling2s", t: "FORTRESS adversarial 83.8% and benign 79.7% (higher is better; ARS 16.2, over-refusal 20.4), StrongREJECT 97.1%, DistressBench 82.0%. Internal misbehavior rate 14.9% against Inkling's 66.8% (lower is better), HoneyBench reward hacking 44, Apollo covert action 8 without a goal and 0 with one. A helpful-only variant gave marginal CBRN uplift without advancing the open-weight frontier. Weights are held until external safety testing and red-teaming finish.", s: "B" },
   { id: "ripple", t: "FORTRESS adversarial 83.8% and benign 95.5% (higher is better), StrongREJECT 97.5%, from the model card at max effort in BF16.", s: "C" },
   { id: "kimik31", t: "No safety suite reported. For the open release Moonshot removed cyber data from mid-training and the RL environments: xdev-bench-hard (pass@3) fell from 90.5% for the unfiltered checkpoint to 81.0%. Moonshot says its cyber capability stays behind proprietary frontier models that have been public for at least three months (ExploitBench 74.7, ExploitGym 20.7).", s: "B" },
   { id: "dsv41", t: "No aggregate safety score in the report. DeepSeek flags its open-source-leading cyber-security results (CyberGym 88.1, SEC-Bench Pro 62.8) as dual-use, and reports exploit-seeking behaviour during evaluation, such as decompiling Ubuntu packages in CyberGym.", s: "R" },

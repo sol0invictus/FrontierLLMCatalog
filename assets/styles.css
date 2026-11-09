@@ -238,6 +238,7 @@ dl.kv dd { margin: 0; color: var(--ink); min-width: 0; }
 .strip .cell.linear { background: var(--k-linear); }
 .strip .cell.sparse { background: var(--k-sparse); }
 .strip .cell.conv { background: var(--k-conv); }
+.strip .cell.attn, .swatch.attn { background: repeating-linear-gradient(135deg, var(--k-global) 0 3px, var(--k-swa) 3px 6px); }
 .strip .cell:hover { outline: 2px solid var(--ink); outline-offset: 0; }
 .strip-axis { display: flex; justify-content: space-between; width: calc(var(--w) * 1%); font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-3); margin-top: 0.25rem; }
 .strip-note { font-size: var(--step--1); color: var(--ink-2); margin-top: 0.35rem; }

@@ -220,12 +220,14 @@
     add(c((l) => l.mixer === "swa"), "SWA");
     add(c((l) => l.mixer === "sparse"), "sparse attn");
     add(c((l) => l.mixer === "global"), "global attn");
+    add(c((l) => l.mixer === "attn"), "attention (split not published)");
     add(c((l) => l.ffn === "moe"), "MoE");
     add(c((l) => l.ffn === "dense"), "dense FFN");
     return `${m.layers.length} layers · ${parts.join(" · ")}`;
   }
-  const layerLegend = () =>
+  const layerLegend = (models = MODELS) =>
     `<div class="legend-row tight">${Object.entries(window.LAYER_KINDS)
+      .filter(([k]) => k !== "attn" || models.some((m) => m.layers.some((l) => l.mixer === "attn")))
       .map(([k, v]) => `<span class="lg"><span class="swatch ${k}"></span>${esc(v.label)}</span>`)
       .join("")}<span class="lg muted">Top row: token mixer · bottom row: FFN</span></div>`;
 
@@ -480,6 +482,7 @@
   /* ---------- KV cache ---------- */
   function kvFor(m, ctx) {
     const k = m.kv;
+    if (!k) return null;
     if (k.perTokenBytes) {
       // Published per-token size in the model's native cache precision (e.g. FP4 latent KV).
       const fixedOnly = k.fixedBytes || 0;
@@ -499,6 +502,8 @@
   const ctxFor = (m) => Math.min(kvCtx, ctxMax(m));
   const capTag = (m, c, full) => (c < full ? `<small data-tip="Context is capped at ${esc(m.contextShort.split(" ")[0])}">@${esc(m.contextShort.split(" ")[0])}</small>` : "");
   function kvBars(models, byTier = false) {
+    const missing = models.filter((m) => !m.kv);
+    models = models.filter((m) => m.kv);
     const max = Math.max(...models.map((m) => kvFor(m, ctxFor(m)).total));
     const ctxLabel = kvCtx === 1048576 ? "1M" : "128K";
     const bar = (m) => {
@@ -513,14 +518,16 @@
     const rows = byTier
       ? tiered(models).map((g) => `<h3 class="tier-h">${tierHead(g)}</h3>${g.models.map(bar).join("")}`).join("")
       : models.map(bar).join("");
+    const gap = missing.length ? `<p class="chart-note">Not shown: ${missing.map((m) => esc(m.name)).join(", ")} (attention layout not published).</p>` : "";
     return `<div class="kv-top">
         <div class="legend-row tight"><span class="lg"><span class="swatch" style="background:var(--accent)"></span>Grows with context</span><span class="lg"><span class="swatch" style="background:var(--bar)"></span>Fixed per sequence</span></div>
         <div class="seg" role="group" aria-label="Context length">
           <button type="button" data-kv="131072" aria-pressed="${kvCtx === 131072}">128K</button>
           <button type="button" data-kv="1048576" aria-pressed="${kvCtx === 1048576}">1M</button>
-        </div></div>${rows}`;
+        </div></div>${rows}${gap}`;
   }
   function kvCard(m) {
+    if (!m.kv) return `<div class="panel pad"><h3>Memory per sequence</h3><p class="chart-note">Not computable yet: the KV heads, head size and local/global split are not published.</p></div>`;
     const cMax = Math.min(1048576, ctxMax(m));
     const a = kvFor(m, Math.min(131072, cMax)), b = kvFor(m, cMax);
     const maxLabel = m.contextShort.split(" ")[0];
@@ -740,9 +747,9 @@
           <div class="hero-main"><p class="org">${esc(m.org)}</p>${bigNums(m)}<p class="tagline">${esc(m.tagline)}</p></div>
           <div class="hero-side">${heroFacts(m)}</div>
         </div>${keyRefs(m)}`),
-      sec("sec-architecture", "Architecture", "Each column of the strip is one layer from config.json: token mixer on top, FFN below. Hover a cell for its index.",
-        `${refsLine(m, "arch")}${window.STACKS && window.STACKS[m.id] ? `<h3 class="mini first">Layer stack</h3><div class="panel pad">${stackFigure(m)}</div><h3 class="mini">One layer</h3>` : `<h3 class="mini first">Block diagram</h3>`}<div class="panel pad">${diagramFigure(m)}</div>
-         <h3 class="mini">Layer layout</h3><div class="panel pad">${layerLegend()}${strip(m, maxDepth)}<p class="strip-note">${esc(m.layersNote)}</p></div>
+      sec("sec-architecture", "Architecture", `Each column of the strip is one layer${m.layers.some((l) => l.mixer === "attn") ? "" : " from config.json"}: token mixer on top, FFN below. Hover a cell for its index.`,
+        `${refsLine(m, "arch")}${window.STACKS && window.STACKS[m.id] ? `<h3 class="mini first">Layer stack</h3><div class="panel pad">${stackFigure(m)}</div><h3 class="mini">One layer</h3>` : window.DIAGRAMS[m.id] ? `<h3 class="mini first">Block diagram</h3>` : ""}${window.DIAGRAMS[m.id] ? `<div class="panel pad">${diagramFigure(m)}</div>` : ""}
+         <h3 class="mini${window.DIAGRAMS[m.id] ? "" : " first"}">Layer layout</h3><div class="panel pad">${layerLegend([m])}${strip(m, maxDepth)}<p class="strip-note">${esc(m.layersNote)}</p></div>
          <div class="arch-grid">
            <div class="arch-main"><h3 class="mini">Spec sheet</h3>${specTable([m])}</div>
            <div class="arch-side">${kvCard(m)}${paramBlock(m)}
@@ -767,11 +774,11 @@
     return [
       sec("sec-overview", `${esc(shortName(a))} <span class="vs">vs</span> ${esc(shortName(b))}`, "", `<div class="cols" style="--n:2">${heroCol(a, "A")}${heroCol(b, "B")}</div><div class="cols" style="--n:2">${keyRefs(a)}${keyRefs(b)}</div>`),
       sec("sec-architecture", "Architecture", "Strips are drawn to the same depth scale. Each column is one layer: token mixer on top, FFN below.",
-        `${refs2("arch")}<div class="panel pad stacks">${layerLegend()}${ms
+        `${refs2("arch")}<div class="panel pad stacks">${layerLegend(ms)}${ms
           .map((m) => `<div class="stack-row"><div class="stack-label"><div class="name">${esc(m.name)}</div><div class="meta">${esc(layerSummary(m))}</div></div><div class="strip-wrap">${strip(m, maxDepth)}<p class="strip-note">${esc(m.layersNote)}</p></div></div>`)
           .join("")}</div>
          <h3 class="mini">Block diagrams</h3>
-         <div class="cols" style="--n:2">${ms.map((m) => `<article class="panel col"><h3>${esc(m.name)}</h3>${stackFigure(m)}${diagramFigure(m)}</article>`).join("")}</div>
+         <div class="cols" style="--n:2">${ms.map((m) => `<article class="panel col"><h3>${esc(m.name)}</h3>${stackFigure(m)}${diagramFigure(m) || `<p class="chart-note">No block diagram: the model code is not published yet.</p>`}</article>`).join("")}</div>
          <h3 class="mini">Spec sheet</h3>${specTable(ms)}
          <h3 class="mini">Memory per sequence (BF16, derived)</h3><div class="panel pad kv-chart" id="kv-chart">${kvBars(ms)}</div>
          <h3 class="mini">What is distinctive</h3>
@@ -804,7 +811,7 @@
     if (key === "total") return parseParams(m.params.total);
     if (key === "active") return parseParams(m.params.active);
     if (key === "layers") return m.layers.length;
-    if (key === "kv") return kvFor(m, Math.min(1048576, ctxMax(m))).total;
+    if (key === "kv") return m.kv ? kvFor(m, Math.min(1048576, ctxMax(m))).total : -1;
     if (key === "name") return m.name.toLowerCase();
     return 0;
   };
@@ -839,7 +846,7 @@
       const x = sortVal(a, homeSort.key), y = sortVal(b, homeSort.key);
       return (x > y ? 1 : x < y ? -1 : 0) * homeSort.dir || bySize(a, b);
     };
-    const maxKv = Math.max(...MODELS.map((m) => kvFor(m, Math.min(1048576, ctxMax(m))).total));
+    const maxKv = Math.max(...MODELS.filter((m) => m.kv).map((m) => kvFor(m, Math.min(1048576, ctxMax(m))).total));
     const th = (key, label, cls = "") => {
       const on = homeSort.key === key;
       const arrow = on ? (homeSort.dir > 0 ? "↑" : "↓") : "";
@@ -860,7 +867,7 @@
           <td><span class="gchip">${esc(m.glance.attn)}</span></td>
           <td><span class="gchip ghost">${esc(m.glance.moe)}</span></td>
           <td class="num">${esc(m.contextShort.split(" ")[0])}</td>
-          <td class="kvcell"><div class="kvmini"><span style="width:${Math.max((kv.total / maxKv) * 100, 1.5).toFixed(1)}%"></span></div><span class="kvnum">${fmtBytes(kv.total)}${capTag(m, c, 1048576)}</span></td>
+          <td class="kvcell">${kv ? `<div class="kvmini"><span style="width:${Math.max((kv.total / maxKv) * 100, 1.5).toFixed(1)}%"></span></div><span class="kvnum">${fmtBytes(kv.total)}${capTag(m, c, 1048576)}</span>` : `<span class="kvnum">n/d</span>`}</td>
           <td class="num">${esc(m.glance.tokens)}</td>
           <td>${reportPill(m.glance.report)}<span class="lic">${esc(m.license.split(" (")[0])}</span></td>
         </tr>`;
@@ -926,7 +933,7 @@
           <div class="hero-text">
             <h1>Frontier LLM Catalogue</h1>
             <p class="lede">The current open-weight models, read down to the config file: layer layouts, attention and routing, training stages and data, RL methods, training tricks and benchmarks. Each fact carries a mark for its source, and the lab's technical report is used first.</p>
-            <p class="edition"><span><b>${MODELS.length}</b> models</span><span><b>${labs}</b> labs</span><span><b>${reports}</b> with a technical report</span><span><b>${window.BENCHMARKS.length}</b> benchmarks</span><span><b>${factCount}</b> sourced facts</span><span>Compiled 8 Nov 2026</span></p>
+            <p class="edition"><span><b>${MODELS.length}</b> models</span><span><b>${labs}</b> labs</span><span><b>${reports}</b> with a technical report</span><span><b>${window.BENCHMARKS.length}</b> benchmarks</span><span><b>${factCount}</b> sourced facts</span><span>Compiled 9 Nov 2026</span></p>
             <div class="hero-cta">
               <label class="sr-only" for="hero-pick">Open a model</label>
               <select id="hero-pick" class="pick-select big"><option value="" selected disabled>Open a model…</option>${modelOptions(null, null)}</select>
