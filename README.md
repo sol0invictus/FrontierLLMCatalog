@@ -6,7 +6,7 @@ Models covered (34): Muse Spark Open and Muse Glimmer 30B (Meta), Inkling and In
 
 ## Views
 
-- **Overview** (the default, with no model selected): a sortable table of every model (params, layers, attention, experts, context, cache at 1M, pretraining tokens, sources and license), architecture fingerprints on a shared depth scale, a benchmark heatmap and memory per sequence. Click any row to open that model. Link: `/`.
+- **Overview** (the default, with no model selected): a sortable table of every model (params, layers, attention, experts, context, cache at 1M, pretraining tokens, sources and license), architecture fingerprints on a shared depth scale, a benchmark heatmap and memory per sequence. All four group models into size tiers by total parameters (1T and up, 400B to 1T, 100B to 400B, under 100B; `TIERS` in `assets/app.js`). Sorting applies within each tier, and heatmap shading and the best-score box are relative within a tier. Click any row to open that model. Link: `/`.
 - **One model**: pick a model and read its full dossier top to bottom: overview, layer diagram, spec sheet, memory per sequence, pretraining stages and mixes, fine-tuning, RL methods, training tricks, published ablations (when the lab gives any), benchmarks with settings, and sources. Link: `/<slug>`, where the slug comes from the model name (e.g. `/reflection-beam-1.0`, `/ripple-65b-preview`). A model's id also works (`/beam`) and redirects to the slug.
 - **Compare two**: choose Model A and Model B (at most two). Every section is side by side. The benchmark table shows A − B where settings are comparable. Link: `/compare/<a>-vs-<b>` (e.g. `/compare/muse-spark-open-vs-reflection-beam-1.0`).
 

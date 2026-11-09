@@ -498,11 +498,10 @@
   };
   const ctxFor = (m) => Math.min(kvCtx, ctxMax(m));
   const capTag = (m, c, full) => (c < full ? `<small data-tip="Context is capped at ${esc(m.contextShort.split(" ")[0])}">@${esc(m.contextShort.split(" ")[0])}</small>` : "");
-  function kvBars(models) {
+  function kvBars(models, byTier = false) {
     const max = Math.max(...models.map((m) => kvFor(m, ctxFor(m)).total));
     const ctxLabel = kvCtx === 1048576 ? "1M" : "128K";
-    const rows = models
-      .map((m) => {
+    const bar = (m) => {
         const c = ctxFor(m);
         const d = kvFor(m, c);
         const fixedName = m.kv.stateBytes ? m.kv.stateLabel : "SWA ring buffers";
@@ -510,8 +509,10 @@
         return `<div class="hbar" data-tip="${esc(tip)}"><span>${esc(shortName(m))}</span>
           <div class="track"><div class="fill"><span style="width:${((d.growing / max) * 100).toFixed(2)}%"></span>${d.fixed ? `<span class="fixed" style="width:${Math.max((d.fixed / max) * 100, 0.4).toFixed(2)}%"></span>` : ""}</div></div>
           <span class="val">${fmtBytes(d.total)}${capTag(m, c, kvCtx)}</span></div>`;
-      })
-      .join("");
+      };
+    const rows = byTier
+      ? tiered(models).map((g) => `<h3 class="tier-h">${tierHead(g)}</h3>${g.models.map(bar).join("")}`).join("")
+      : models.map(bar).join("");
     return `<div class="kv-top">
         <div class="legend-row tight"><span class="lg"><span class="swatch" style="background:var(--accent)"></span>Grows with context</span><span class="lg"><span class="swatch" style="background:var(--bar)"></span>Fixed per sequence</span></div>
         <div class="seg" role="group" aria-label="Context length">
@@ -808,6 +809,19 @@
     return 0;
   };
 
+  /* Size tiers by total parameters, used to group the home-page comparisons. */
+  const TIERS = [
+    { k: "t1", label: "1T and up", min: 1000 },
+    { k: "t2", label: "400B to 1T", min: 400 },
+    { k: "t3", label: "100B to 400B", min: 100 },
+    { k: "t4", label: "Under 100B", min: 0 },
+  ];
+  const tierOf = (m) => TIERS.find((t) => parseParams(m.params.total) >= t.min);
+  const bySize = (a, b) => parseParams(b.params.total) - parseParams(a.params.total) || parseParams(b.params.active) - parseParams(a.params.active) || a.name.localeCompare(b.name);
+  /* [{ tier, models }] in tier order; empty tiers dropped. */
+  const tiered = (models, cmp = bySize) => TIERS.map((t) => ({ tier: t, models: models.filter((m) => tierOf(m) === t).sort(cmp) })).filter((g) => g.models.length);
+  const tierHead = (g) => `${esc(g.tier.label)}<span class="tier-n">${g.models.length} ${g.models.length === 1 ? "model" : "models"}</span>`;
+
   function paramsBar(m) {
     // Log scale from 1B to 3T so 3B and 2.8T are both readable.
     const lo = Math.log10(1), hi = Math.log10(3000);
@@ -821,10 +835,10 @@
   }
 
   function glanceTable() {
-    const rows = MODELS.slice().sort((a, b) => {
+    const cmp = (a, b) => {
       const x = sortVal(a, homeSort.key), y = sortVal(b, homeSort.key);
-      return (x > y ? 1 : x < y ? -1 : 0) * homeSort.dir;
-    });
+      return (x > y ? 1 : x < y ? -1 : 0) * homeSort.dir || bySize(a, b);
+    };
     const maxKv = Math.max(...MODELS.map((m) => kvFor(m, Math.min(1048576, ctxMax(m))).total));
     const th = (key, label, cls = "") => {
       const on = homeSort.key === key;
@@ -835,8 +849,7 @@
       const cls = r === "Report" ? "detailed" : r === "Safety report" ? "partial" : "none";
       return `<span class="pill ${cls}">${esc(r)}</span>`;
     };
-    const body = rows
-      .map((m) => {
+    const row = (m) => {
         const c = Math.min(1048576, ctxMax(m));
         const kv = kvFor(m, c);
         return `<tr class="grow" data-open="${m.id}">
@@ -851,46 +864,56 @@
           <td class="num">${esc(m.glance.tokens)}</td>
           <td>${reportPill(m.glance.report)}<span class="lic">${esc(m.license.split(" (")[0])}</span></td>
         </tr>`;
-      })
+      };
+    const body = tiered(MODELS, cmp)
+      .map((g) => `<tr class="group tier"><th colspan="10" scope="colgroup">${tierHead(g)}</th></tr>${g.models.map(row).join("")}`)
       .join("");
     return `<div class="panel scroll"><table class="grid glance-table">
       <thead><tr>${th("name", "Model")}${th("date", "Released")}${th("total", "Params")}${th("layers", "Layers")}<th scope="col">Attention</th><th scope="col">Experts</th><th scope="col">Context</th>${th("kv", "Cache @ 1M")}<th scope="col">Pretrain</th><th scope="col">Sources</th></tr></thead>
       <tbody>${body}</tbody></table></div>
-      <p class="chart-note">Click a row to open the model. Click a header to sort. Summaries of each model's cited spec sheet. Cache is per sequence at 1M tokens (or the model's maximum), in BF16 unless the model's memory card says otherwise. "+" tokens are added on top of an earlier base; * GLM-5's base, which GLM-5.3 inherits.</p>`;
+      <p class="chart-note">Models are grouped by total parameters. Click a row to open the model. Click a header to sort within each group. Summaries of each model's cited spec sheet. Cache is per sequence at 1M tokens (or the model's maximum), in BF16 unless the model's memory card says otherwise. "+" tokens are added on top of an earlier base; * GLM-5's base, which GLM-5.3 inherits.</p>`;
   }
 
   function fingerprints() {
     const maxDepth = Math.max(...MODELS.map((m) => m.layers.length));
-    return `<div class="panel pad fp">${layerLegend()}${MODELS.map(
+    return `<div class="panel pad fp">${layerLegend()}${tiered(MODELS).map((g) => `<h3 class="tier-h">${tierHead(g)}</h3>${g.models.map(
       (m) => `<div class="fp-row" data-open="${m.id}">
         <div class="fp-label"><a class="gname" href="${esc(hrefFor(m))}" data-open="${m.id}">${esc(shortName(m))}</a><span class="glab">${m.layers.length} layers · ${esc(m.glance.attn)}</span></div>
         <div class="fp-strip">${strip(m, maxDepth)}</div>
         <p class="fp-sig">${esc(m.glance.sig)}</p>
       </div>`
-    ).join("")}</div>`;
+    ).join("")}`).join("")}</div>`;
   }
 
   function heatmap() {
     const rows = HEAT_ROWS.map((n) => BENCH.find((b) => b.name === n)).filter(Boolean);
-    const head = `<tr><th scope="col">Benchmark</th>${MODELS.map((m) => `<th scope="col"><a class="linkbtn" href="${esc(hrefFor(m))}" data-open="${m.id}">${esc(shortName(m))}</a></th>`).join("")}</tr>`;
+    const groups = tiered(MODELS);
+    const cols = groups.flatMap((g) => g.models.map((m, i) => ({ m, g, first: i === 0 })));
+    const tcls = (c) => (c.first ? ' class="tier-start"' : "");
+    const head = `<tr class="tier-row"><th scope="col" rowspan="2" class="hc-first">Benchmark</th>${groups.map((g, i) => `<th scope="colgroup" colspan="${g.models.length}" class="tier-cap${i ? " tier-start" : ""}"><span class="tier-lab">${tierHead(g)}</span></th>`).join("")}</tr>
+      <tr>${cols.map((c) => `<th scope="col"${tcls(c)}><a class="linkbtn" href="${esc(hrefFor(c.m))}" data-open="${c.m.id}">${esc(shortName(c.m))}</a></th>`).join("")}</tr>`;
     const body = rows
       .map((b) => {
-        const vals = MODELS.map((m) => b.scores[m.id]?.v).filter((v) => typeof v === "number");
-        const lo = Math.min(...vals), hi = Math.max(...vals);
-        const cells = MODELS.map((m) => {
+        const range = new Map(groups.map((g) => {
+          const v = g.models.map((m) => b.scores[m.id]?.v).filter((x) => typeof x === "number");
+          return [g.tier.k, { lo: Math.min(...v), hi: Math.max(...v), n: v.length }];
+        }));
+        const cells = cols.map(({ m, g, first }) => {
+          const { lo, hi, n } = range.get(g.tier.k);
           const s = b.scores[m.id];
-          if (!s) return `<td class="heat empty"><span>—</span></td>`;
+          const ts = first ? " tier-start" : "";
+          if (!s) return `<td class="heat empty${ts}"><span>—</span></td>`;
           const t = hi > lo ? (s.v - lo) / (hi - lo) : 0.5;
           const pct = (10 + t * 62).toFixed(0);
-          const top = s.v === hi && vals.length > 1;
+          const top = s.v === hi && n > 1;
           const tip = `${m.name} · ${b.name}: ${s.v}${s.n ? " — " + s.n : ""}`;
-          return `<td class="heat${t > 0.62 ? " hi" : ""}${top ? " top" : ""}" style="--h:${pct}%" data-tip="${esc(tip)}"><span>${s.v}</span></td>`;
+          return `<td class="heat${t > 0.62 ? " hi" : ""}${top ? " top" : ""}${ts}" style="--h:${pct}%" data-tip="${esc(tip)}"><span>${s.v}</span></td>`;
         }).join("");
-        return `<tr><th scope="row">${esc(b.name)}${b.cmp === false ? `<span class="flag" data-tip="Labs used different protocols for this benchmark">≠</span>` : ""}</th>${cells}</tr>`;
+        return `<tr><th scope="row" class="hc-first">${esc(b.name)}${b.cmp === false ? `<span class="flag" data-tip="Labs used different protocols for this benchmark">≠</span>` : ""}</th>${cells}</tr>`;
       })
       .join("");
     return `<div class="panel scroll"><table class="grid heat-table" style="min-width:calc(11.5rem + ${MODELS.length} * 4.4rem)"><colgroup><col class="hc0">${MODELS.map(() => "<col>").join("")}</colgroup><thead>${head}</thead><tbody>${body}</tbody></table></div>
-      <p class="chart-note">Self-reported scores; shading is relative within each row, and the boxed cell is the row's highest. Harnesses differ between labs (rows marked ≠ differ most), so treat gaps as indicative. Hover a cell for its setting.</p>`;
+      <p class="chart-note">Self-reported scores. Columns are grouped by total parameters; shading is relative within each size group, and the boxed cell is the group's highest in that row. Harnesses differ between labs (rows marked ≠ differ most), so treat gaps as indicative. Hover a cell for its setting.</p>`;
   }
 
   function viewHome() {
@@ -903,7 +926,7 @@
           <div class="hero-text">
             <h1>Frontier LLM Catalogue</h1>
             <p class="lede">The current open-weight models, read down to the config file: layer layouts, attention and routing, training stages and data, RL methods, training tricks and benchmarks. Each fact carries a mark for its source, and the lab's technical report is used first.</p>
-            <p class="edition"><span><b>${MODELS.length}</b> models</span><span><b>${labs}</b> labs</span><span><b>${reports}</b> with a technical report</span><span><b>${window.BENCHMARKS.length}</b> benchmarks</span><span><b>${factCount}</b> sourced facts</span><span>Compiled 7 Nov 2026</span></p>
+            <p class="edition"><span><b>${MODELS.length}</b> models</span><span><b>${labs}</b> labs</span><span><b>${reports}</b> with a technical report</span><span><b>${window.BENCHMARKS.length}</b> benchmarks</span><span><b>${factCount}</b> sourced facts</span><span>Compiled 8 Nov 2026</span></p>
             <div class="hero-cta">
               <label class="sr-only" for="hero-pick">Open a model</label>
               <select id="hero-pick" class="pick-select big"><option value="" selected disabled>Open a model…</option>${modelOptions(null, null)}</select>
@@ -919,7 +942,7 @@
       ${sec("sec-glance", "The field at a glance", "Scale, attention design, expert layout, memory and how much each lab published.", glanceTable())}
       ${sec("sec-fingerprints", "Architecture fingerprints", "Every layer of every model, drawn to the same depth scale: token mixer on top, FFN below. Click a row to open the model.", fingerprints())}
       ${sec("sec-heat", "Benchmarks at a glance", `${HEAT_ROWS.length} benchmarks that several labs report.`, heatmap())}
-      ${sec("sec-memory", "Memory per sequence", "KV cache plus fixed state for one sequence. This is what limits batch size at long context.", `<div class="panel pad kv-chart" id="kv-chart">${kvBars(MODELS)}</div>`)}`;
+      ${sec("sec-memory", "Memory per sequence", "KV cache plus fixed state for one sequence. This is what limits batch size at long context.", `<div class="panel pad kv-chart" id="kv-chart">${kvBars(MODELS, true)}</div>`)}`;
   }
 
   /* ---------- Controls ---------- */
@@ -987,7 +1010,7 @@
       const k = e.target.closest("[data-kv]");
       if (k) {
         kvCtx = +k.dataset.kv;
-        $("#kv-chart").innerHTML = kvBars(state.mode === "home" ? MODELS : [byId(state.a), byId(state.b)]);
+        $("#kv-chart").innerHTML = (state.mode === "home" ? kvBars(MODELS, true) : kvBars([byId(state.a), byId(state.b)]));
         return;
       }
       const srt = e.target.closest("[data-sort]");
