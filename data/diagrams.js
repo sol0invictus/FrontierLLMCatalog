@@ -853,6 +853,67 @@ window.DIAGRAMS = {
   },
 
 
+  inkling2s: {
+    s: "C",
+    base: "Inkling-Small",
+    caption: "One Inkling 2 Small layer, repeated 48 times (40 sliding-window, 8 global). Inkling's relative bias and short convolutions stay. The residual stream is gone: each sublayer reads a learned softmax mix of 6-layer block sums. Attention clips Q and K instead of normalizing them, adds a per-token sink and gates its output, and the experts are softcapped. Orange tags mark steps that are new or changed from Inkling-Small. Built from modular_inkling2.py (transformers PR #50682) and the weight index.",
+    inputs: [
+      { row: [
+        { l: "Token embedding", s: "201,024 × 4608" },
+        { l: "PE ViT", s: "23 layers × 1024, 20 px patches", c: "new", n: true },
+      ] },
+      { row: [
+        { l: "RMSNorm", s: "learned gain", n: true },
+        { l: "2×2 merge → MLP", s: "4096 → 4608", c: "changed" },
+      ] },
+    ],
+    block: {
+      title: "Decoder layer",
+      repeat: "× 48",
+      stream: "AttnRes: 6-layer block sums",
+      note: "Global layers 5, 11 … 47: 3 AttnRes queries (Q, K, V), dynamic K/V convs, log scaling past 128K",
+      branches: [
+        {
+          title: "Attention (40 sliding-window + 8 global)",
+          steps: [
+            { l: "AttnRes mix", s: "softmax(w · RMSNorm(blocks)), FP32", n: true, c: "new" },
+            { l: "RMSNorm", s: "learned gain; global: one per Q, K, V" },
+            { row: [
+              { l: "Q projection", s: "48 heads × 128", c: "changed" },
+              { l: "K, V + short conv", s: "8 KV heads, k=4", n: true, c: "changed" },
+              { l: "Relative coeffs", s: "16 per head, clip 8", n: true, c: "changed" },
+            ] },
+            { l: "Q, K L2 clip 22.6; V RMSNorm", s: "replaces QK-norm", n: true, c: "changed" },
+            { l: "Attention + rel. bias + sink", s: "1/√d; window 1024, or full", n: true, c: "changed" },
+            { l: "× σ(W_g x), elementwise", s: "48 × 128 gate", n: true, c: "new" },
+            { l: "Output projection", s: "6144 → 4608" },
+            { l: "Short conv", s: "kernel 4, ÷√5, FP32", n: true, c: "changed" },
+          ],
+          merge: { l: "add to block partial sum", s: "new block every 6 layers", n: true, c: "changed" },
+        },
+        {
+          title: "MoE (all 48 layers)",
+          steps: [
+            { l: "AttnRes mix", s: "own query", n: true, c: "new" },
+            { l: "RMSNorm", s: "learned gain" },
+            { l: "Sigmoid router (FP32)", s: "bias picks top-8 of 384", n: true, c: "changed" },
+            { l: "8 of 384 experts", s: "softcapped SwiGLU, 2304 wide", n: true, c: "changed" },
+            { l: "Weighted sum (FP32)", s: "renormalized × 8, no shared", n: true, c: "changed" },
+            { l: "Short conv", s: "kernel 4, ÷√5, FP32", n: true, c: "changed" },
+          ],
+          merge: { l: "add to block partial sum", n: true, c: "changed" },
+        },
+      ],
+    },
+    outputs: [
+      { l: "AttnRes over all blocks → RMSNorm", n: true, c: "new" },
+      { row: [
+        { l: "LM head", s: "untied, tanh softcap 30", n: true, c: "changed" },
+        { l: "Block drafter", s: "5 layers, 8 tokens per step", n: true, c: "changed" },
+      ] },
+    ],
+  },
+
   dsv4pro: {
     s: "R+C",
     caption: "One DeepSeek-V4-Pro layer, repeated 61 times on four mHC residual streams. Each layer attends over its own 128-token window plus either CSA entries (4 tokens each, top-1024 picked by an indexer) or HCA entries (128 tokens each, all of them). One 512-dim vector serves as both key and value.",

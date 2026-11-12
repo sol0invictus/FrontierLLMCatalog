@@ -933,7 +933,7 @@
           <div class="hero-text">
             <h1>Frontier LLM Catalogue</h1>
             <p class="lede">The current open-weight models, read down to the config file: layer layouts, attention and routing, training stages and data, RL methods, training tricks and benchmarks. Each fact carries a mark for its source, and the lab's technical report is used first.</p>
-            <p class="edition"><span><b>${MODELS.length}</b> models</span><span><b>${labs}</b> labs</span><span><b>${reports}</b> with a technical report</span><span><b>${window.BENCHMARKS.length}</b> benchmarks</span><span><b>${factCount}</b> sourced facts</span><span>Compiled 9 Nov 2026</span></p>
+            <p class="edition"><span><b>${MODELS.length}</b> models</span><span><b>${labs}</b> labs</span><span><b>${reports}</b> with a technical report</span><span><b>${window.BENCHMARKS.length}</b> benchmarks</span><span><b>${factCount}</b> sourced facts</span><span>Compiled 12 Nov 2026</span></p>
             <div class="hero-cta">
               <label class="sr-only" for="hero-pick">Open a model</label>
               <select id="hero-pick" class="pick-select big"><option value="" selected disabled>Open a model…</option>${modelOptions(null, null)}</select>
