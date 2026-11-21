@@ -256,6 +256,7 @@ dl.kv dd { margin: 0; color: var(--ink); min-width: 0; }
 .strip .cell:hover { outline: 2px solid var(--ink); outline-offset: 0; }
 .strip-axis { display: flex; justify-content: space-between; width: calc(var(--w) * 1%); font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-3); margin-top: 0.25rem; }
 .strip-note { font-size: var(--step--1); color: var(--ink-2); margin-top: 0.35rem; }
+.strip-none { font-size: var(--step--1); color: var(--ink-3); font-style: italic; margin: 0; }
 .rowkeys { font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-3); display: flex; gap: 1rem; margin-bottom: 0.25rem; }
 .swatch { width: 0.8rem; height: 0.8rem; border-radius: 2px; display: inline-block; }
 .swatch.global { background: var(--k-global); } .swatch.mamba { background: var(--k-mamba); }
@@ -887,7 +888,7 @@ a.gname:hover, a.gname:focus-visible { color: var(--accent); text-decoration: un
 
 <footer class="wrap">
   <div class="legend-row" id="src-legend" aria-label="Source key"></div>
-  <p>Compiled 2026-11-12. Each fact cites the highest-tier source that states it: (1) technical report, (2) the lab's official blog, (3) the Hugging Face model card, transformers implementation and config.json, (4) other sources such as X posts and third-party blogs. Benchmarks are self-reported unless a note names another source.</p>
+  <p>Compiled 2026-11-21. Each fact cites the highest-tier source that states it: (1) technical report, (2) the lab's official blog, (3) the Hugging Face model card, transformers implementation and config.json, (4) other sources such as X posts and third-party blogs. Benchmarks are self-reported unless a note names another source.</p>
 </footer>
 <footer class="site-footer">A project by <a class="ext" href="https://www.sunnyguha.com/projects">Sunny Guha</a></footer>
 
@@ -1435,6 +1436,223 @@ window.MODELS = [
       ],
       notes: [
         { t: "Safety RL hill-climbs on content-safety evals with iterative checkpoint evaluation and mitigation.", s: "R" },
+      ],
+    },
+  },
+
+  /* ------------------------------------------------------------------ */
+  {
+    id: "inkling2m",
+    glance: {"date": "2026-11-20", "attn": "SWA 1024 · 5:1", "moe": "128 → 8", "tokens": "n/d", "report": "Blog + card", "sig": "Looped Inkling 2: 24 stored layers, the middle 12 run three times with gated messages between passes; 20 GB in native NVFP4"},
+    benchSource: { s: "B+C", t: "Model card on Thinking Machines' site (tier 2), which has more rows than the launch post and the Hugging Face card (tier 3); the numbers agree where they overlap. The harness for each row is in the note. Most scores come from the benchmark owners (Artificial Analysis, Vals, Scale AI, Datacurve). Reasoning effort is not stated; generation_config.json samples at temperature 1.0." },
+    name: "Inkling 2 Mini",
+    org: "Thinking Machines Lab",
+    released: "2026-11-20 (open weights on Hugging Face; Tinker for inference and fine-tuning)",
+    license: "Apache 2.0",
+    params: { total: "26.4B", active: "3.4B" },
+    contextShort: "1M",
+    modalitiesShort: "Text, image → text",
+    tagline:
+      "The smallest second-generation Inkling and Thinking Machines' first looped transformer. It keeps Inkling 2 Small's layer design (attention residuals over 6-layer blocks, relative bias instead of RoPE, gated L2-clipped attention, softcapped experts) at half the width. Of its 24 stored layers, the middle 12 run three times per token, so each token makes 48 layer visits from 26.4B parameters. The second and third passes restart from the first block's output and gate in a message from the previous pass. It started with 384 experts, was pruned to 128 in midtraining, and ships as a 20 GB checkpoint in the NVFP4 and MXFP8 precision it was trained in.",
+    disclosure: { arch: "detailed", pretrain: "partial", sft: "partial", rl: "partial" },
+    docs: [
+      { kind: "B", label: "Introducing Inkling 2 Mini (launch post)", url: "https://thinkingmachines.ai/news/inkling-2-mini/" },
+      { kind: "B", label: "Inkling 2 Mini model card (Thinking Machines site)", url: "https://thinkingmachines.ai/model-card/inkling-2-mini/" },
+      { kind: "B", label: "Tinker docs: models and pricing", url: "https://tinker-docs.thinkingmachines.ai/tinker/models/models_and_pricing/" },
+      { kind: "C", label: "HF model card and weights", url: "https://huggingface.co/thinkingmachines/Inkling-2-Mini" },
+      { kind: "C", label: "config.json", url: "https://huggingface.co/thinkingmachines/Inkling-2-Mini/blob/main/config.json" },
+      { kind: "C", label: "hf_quant_config.json (per-tensor precision)", url: "https://huggingface.co/thinkingmachines/Inkling-2-Mini/blob/main/hf_quant_config.json" },
+      { kind: "C", label: "transformers implementation (inkling2_loop, PR #51050)", url: "https://github.com/huggingface/transformers/tree/main/src/transformers/models/inkling2_loop" },
+      { kind: "C", label: "TML-d24-varloop-research (variable-loop sibling, HF card)", url: "https://huggingface.co/thinkingmachines/TML-d24-varloop-research" },
+      { kind: "C", label: "tinker-cookbook: model_info.py", url: "https://github.com/thinking-machines-lab/tinker-cookbook/blob/main/tinker_cookbook/model_info.py" },
+      { kind: "X", label: "Hugging Face blog: Welcome Inkling 2 Mini (HF staff)", url: "https://huggingface.co/blog/inkling2mini" },
+      { kind: "X", label: "Artificial Analysis: Inkling 2 Mini", url: "https://artificialanalysis.ai/articles/inkling-2-mini" },
+      { kind: "X", label: "vLLM recipe", url: "https://recipes.vllm.ai/thinkingmachines/Inkling-2-Mini" },
+    ],
+    layers: Array.from({ length: 24 }, (_, i) => ({ mixer: [5, 11, 17, 23].includes(i) ? "global" : "swa", ffn: "moe" })),
+    layersNote: "24 stored layers, all MoE. local_layer_ids in config.json lists 20 sliding-window layers; layers 5, 11, 17 and 23 are global, so each 6-layer block ends on one. loop_config (core_start 6, core_end 18, num_passes 3) runs layers 6–17 three times, so a token makes 48 layer visits: 6 + 3 × 12 + 6.",
+    kv: { globalLayers: 8, swaLayers: 40, window: 1024, kvHeads: 8, headDim: 128, stateBytes: 0, stateLabel: "", note: "Counted per layer visit. Each pass keeps its own KV and conv cache for the 12 looped layers (cache_offset in the transformers code), so the cache covers 8 global and 40 sliding-window visits, the same as Inkling 2 Small. BF16 values." },
+    specs: {
+      params: { v: "26.4B / 3.4B active, or 5.4B effective active with three passes (each extra pass adds about 1.0B). The checkpoint's tensor shapes sum to 26.39B", s: "B+C+D" },
+      sparsity: { v: "12.9% (3.4B / 26.4B); 20% with all three passes counted (5.4B)", s: "D" },
+      layers: { v: "24 stored = 20 SWA + 4 global, all MoE. Layers 6–17 run three times, giving 48 layer visits per token", s: "B+C" },
+      hidden: { v: "2304 (Inkling 2 Small: 4608)", s: "C" },
+      vocab: { v: "201,024 rows, 200,058 used, the same sizes as Inkling 2 Small", s: "C" },
+      context: { v: "Up to 1M (model_max_length 1,048,576). Tinker trains at 64K or 256K and samples up to 1M", s: "B+C" },
+      mixer: { v: "Attention only (sliding window + global)", s: "C" },
+      heads: { v: "24 Q / 8 KV / 128 on both SWA and global layers", s: "C" },
+      pattern: { v: "5 : 1, window 1024. Global layers 5, 11, 17, 23; two of them (11, 17) sit in the loop, so a token makes 8 global visits", s: "C" },
+      position: { v: "No RoPE. Inkling's learned relative bias: 16 coefficients per head, L2-clipped to 8, mix 16 bias-vs-distance profiles over 1024 distances. Global layers scale q and the coefficients by 1 + 0.1·ln(n/8,192) past 8,192 tokens (Inkling 2 Small starts at 128,000)", s: "C" },
+      attnExtras: { v: "As Inkling 2 Small: Q and K L2-clipped to 22.6 in place of QK-norm, V RMS-normalized without gain, a per-token sink logit per head, an elementwise sigmoid gate (24 × 128) before the output projection, and short convs on K and V with per-token taps on global layers", s: "C" },
+      ssm: { v: "—", s: "" },
+      moe: { v: "128 / top-8, pruned from 384 experts in midtraining", s: "B+C" },
+      shared: { v: "None", s: "C" },
+      expertDim: { v: "1152, softcapped SwiGLU (Inkling 2 Small: 2304)", s: "C" },
+      latent: { v: "No", s: "C" },
+      routing: { v: "Sigmoid router in FP32; a correction bias steers top-8 selection only; weights renormalized and × 8. Expert outputs summed in FP32", s: "C" },
+      dense: { v: "None", s: "C" },
+      act: { v: "Softcapped SwiGLU: 4·tanh(g/4) · σ(g) · 25·tanh(u/25)", s: "C" },
+      norm: { v: "Pre-norm RMSNorm with Block Attention Residuals over 6-layer blocks, as in Inkling 2 Small. Passes 2 and 3 through layers 6–17 restart from the state after layer 5 (hidden state and block sums). In those passes each looped layer also reads a message: softmax attention with learned queries (separate ones for its Q, K, V and MLP inputs) over the previous pass's two block states. A rank-64 gate in FP32 mixes it in as (1 − tanh f)·h + tanh(m)·message. The blog says the gate starts closed, so looping could be turned on during training without a jump", s: "B+C" },
+      head: { v: "RMSNorm on token embeddings; a final attention-residual mix → RMSNorm → untied LM head; tanh logit softcap 30", s: "C" },
+      mtp: { v: "Separate 3-layer DSpark block drafter (0.32B) in mtp.safetensors, not in transformers (Inkling 2 Small: 5 layers). Llama-style layers with QK-norm and RoPE θ 1M (2 SWA + 1 global, dense 9,216-wide FFNs). It drafts 8 tokens per step from a mask embedding; extra context K/V projections read a learned 4-way fusion of the target's states at layer visits 5, 23 and 41 and the final normalized state. A rank-256 recurrent markov head sits on top", s: "C" },
+      kv: { v: "32 KiB per token from 8 global layer visits (2 × 8 × 128 × 2 B each), because every pass keeps its own cache; SWA visits capped at 1024 tokens", s: "C+D" },
+      state: { v: "SWA ring 160 MiB (40 visits × 1024 tokens × 4 KiB) plus conv states for every visit", s: "D" },
+      precision: { v: "Trained and released in the same precision: experts NVFP4 in layers 0–19 and MXFP8 in 20–23; attention, embeddings and head BF16; router bias, residual queries and loop gates FP32. One 19.5 GB checkpoint", s: "B+C" },
+      modalities: { v: "Text and image (40–4096 px per side) in; text out", s: "B" },
+      encoders: { v: "Perception Encoder-based ViT, 23 layers × 1024 (0.32B), the same shape as Inkling 2 Small's. 2×2 merge → MLP (4096) into the 2304-wide decoder", s: "C" },
+    },
+    paramBreakdown: {
+      s: "C+D",
+      note: "Counted from the safetensors header; the shapes sum to 26.39B. Active per token for one pass: 8 of 128 experts (1.53B) plus attention, routers and loop gates (0.68B) is 2.21B in the decoder layers. Adding the embedding, LM head and ViT gives 3.46B, close to the stated 3.4B. The 12 looped layers hold 1.12B active per pass, so by this count each extra pass adds 1.12B (the card says about 1.0B). Byte check: the header's tensors total 19,525,870,752 bytes, the weight index's total_size. The 0.32B drafter in mtp.safetensors is not counted.",
+      parts: [
+        { label: "Routed experts", b: 24.46 },
+        { label: "Embedding + LM head", b: 0.93 },
+        { label: "Attention (q, k, v, o, gate, rel, sink, convs)", b: 0.65 },
+        { label: "Vision ViT + projector", b: 0.32 },
+        { label: "Loop gates and message queries", b: 0.021 },
+        { label: "Routers", b: 0.007 },
+      ],
+    },
+    highlights: [
+      { t: "<b>48 layer visits from 24 layers.</b> Layers 0–5 run once, layers 6–17 three times with shared weights, and layers 18–23 once. Looping the middle 12 layers beat looping the last 12 on 27 of 28 evaluations.", s: "B+C" },
+      { t: "<b>Each pass restarts and reads a message.</b> Passes 2 and 3 start again from the first block's output instead of continuing from the previous pass. Each looped layer gates in a message retrieved from the previous pass, through a gate that starts closed.", s: "B+C" },
+      { t: "<b>Pruned, then healed.</b> The model started with 384 experts (top-8). In midtraining Thinking Machines kept the 128 most used in each layer, then trained on 1T tokens distilled from a larger internal Inkling to recover.", s: "B" },
+      { t: "<b>Loops help reasoning, not recall.</b> On the variable-loop sibling, going from 1 to 3 passes lifts MRCR v2 from 27.2% to 89.2% and DeepSWE from 0.7% to 47.4%, while SimpleQA Verified moves from 6.3% to 7.3%.", s: "C" },
+      { t: "<b>Shorter but legible reasoning.</b> At 5 passes the variable-loop model's GPQA reasoning was under half as long as at 1 pass (1,661 vs 3,703 tokens) with unchanged legibility. CoT controllability stayed at or below 0.1%.", s: "B" },
+      { t: "<b>Runs on a laptop at its training precision.</b> About 20 GB in NVFP4 with MXFP8 in the last four layers, so it fits 32 GB Macs and a DGX Spark with no conversion loss.", s: "B" },
+    ],
+    refs: {
+      arch: [
+        { label: "Launch post: Architecture and training", url: "https://thinkingmachines.ai/news/inkling-2-mini/#architecture-and-training", s: "B" },
+        { label: "Model card §3", url: "https://thinkingmachines.ai/model-card/inkling-2-mini/", s: "B" },
+        { label: "config.json", url: "https://huggingface.co/thinkingmachines/Inkling-2-Mini/blob/main/config.json", s: "C" },
+        { label: "modular_inkling2_loop.py", url: "https://github.com/huggingface/transformers/blob/main/src/transformers/models/inkling2_loop/modular_inkling2_loop.py", s: "C" },
+        { label: "hf_quant_config.json", url: "https://huggingface.co/thinkingmachines/Inkling-2-Mini/blob/main/hf_quant_config.json", s: "C" },
+      ],
+      pretrain: [
+        { label: "Launch post: Pruning and healing", url: "https://thinkingmachines.ai/news/inkling-2-mini/#pruning-and-healing", s: "B" },
+        { label: "Launch post: NVFP4 and low-bit quantization", url: "https://thinkingmachines.ai/news/inkling-2-mini/#nvfp4-and-low-bit-quantization", s: "B" },
+        { label: "TML-d24-varloop-research card §4", url: "https://huggingface.co/thinkingmachines/TML-d24-varloop-research", s: "C" },
+      ],
+      sft: [{ label: "Launch post: Training Inkling 2 Mini", url: "https://thinkingmachines.ai/news/inkling-2-mini/#training-inkling-2-mini", s: "B" }],
+      rl: [{ label: "Launch post: Training Inkling 2 Mini", url: "https://thinkingmachines.ai/news/inkling-2-mini/#training-inkling-2-mini", s: "B" }],
+      tricks: [
+        { label: "Launch post", url: "https://thinkingmachines.ai/news/inkling-2-mini/", s: "B" },
+        { label: "modular_inkling2_loop.py", url: "https://github.com/huggingface/transformers/blob/main/src/transformers/models/inkling2_loop/modular_inkling2_loop.py", s: "C" },
+      ],
+      ablations: [
+        { label: "Launch post: Looping design", url: "https://thinkingmachines.ai/news/inkling-2-mini/#looping-design", s: "B" },
+        { label: "Launch post: Monitorability of looped transformers", url: "https://thinkingmachines.ai/news/inkling-2-mini/#monitorability-of-looped-transformers", s: "B" },
+        { label: "TML-d24-varloop-research card §5", url: "https://huggingface.co/thinkingmachines/TML-d24-varloop-research", s: "C" },
+      ],
+      bench: [
+        { label: "Model card §5", url: "https://thinkingmachines.ai/model-card/inkling-2-mini/", s: "B" },
+        { label: "Launch post: Capabilities", url: "https://thinkingmachines.ai/news/inkling-2-mini/#capabilities", s: "B" },
+        { label: "HF model card §5", url: "https://huggingface.co/thinkingmachines/Inkling-2-Mini", s: "C" },
+      ],
+    },
+    tricks: [
+      { cat: "Architecture", name: "Loop the middle, not the end", t: "Four 6-layer blocks; the two middle blocks run three times. Thinking Machines' reasoning is that middle layers carry the abstract work while the first and last blocks translate to and from embeddings. At equal training compute, the middle loop was worth 1.51–1.91× compute against 1.24–1.36× for looping the last 12 layers.", s: "B" },
+      { cat: "Architecture", name: "Cross-pass messages", t: "Passes 2 and 3 restart from the prelude's state. Each looped layer retrieves a message from the previous pass with learned queries (zero-initialized, so the first retrieval is a plain average of the two block states) and mixes it into its Q, K, V and MLP inputs through rank-64 forget and message gates.", s: "B+C" },
+      { cat: "Optimization & stability", name: "Gates that start closed", t: "The message gate blocks the whole message at the start of looped training, so each loop begins exactly like the non-looped model, and the gain on the message grows during training. This let looping be introduced partway through training without destabilizing it.", s: "B" },
+      { cat: "Architecture", name: "One cache per pass", t: "Every pass through the looped layers keeps its own KV and short-conv state. The transformers code appends copies of the loop layers' caches and addresses them with a per-pass offset, so cache memory grows with passes even though weights do not.", s: "C" },
+      { cat: "Data", name: "Prune two-thirds of the experts, then heal", t: "At one point in midtraining the model went from 384 to 128 experts per layer, keeping the most used. 1T tokens distilled from a larger internal Inkling then trained the survivors to take over the pruned experts' work.", s: "B" },
+      { cat: "Numerics", name: "Ships in its training precision", t: "Expert layers run NVFP4 in every forward pass from pretraining through RL; the last four layers' experts run MXFP8. The release keeps those formats (20 layers NVFP4, 4 MXFP8), so there is no post-training quantization loss.", s: "B+C" },
+      { cat: "Numerics", name: "FP32 loop gates", t: "The message retrieval queries and the forget and message gate projections are kept in FP32, along with the residual-mix queries, router bias and short convs.", s: "C" },
+      { cat: "Long context", name: "Earlier log scaling", t: "Global layers start their logarithmic query and coefficient scaling at 8,192 tokens instead of Inkling 2 Small's 128,000.", s: "C" },
+      { cat: "Inference", name: "3-layer DSpark drafter", t: "A 0.32B block drafter proposes 8 tokens per step from the target's states at layer visits 5, 23 and 41 plus the final state. SGLang runs it with --speculative-algorithm DSPARK.", s: "C+X" },
+      { cat: "Post-training", name: "On-policy distillation for alignment", t: "As for Inkling 2 Small, post-training ends with an alignment phase trained by on-policy distillation.", s: "B" },
+      { cat: "Research", name: "A variable-loop sibling", t: "TML-d24-varloop-research shares pretraining and early midtraining, then trains with 1–5 passes sampled 1:2:6:2:1 and is post-trained at 3. It runs at any pass count at inference, which makes clean loop-depth comparisons possible.", s: "B+C" },
+    ],
+    ablations: [
+      {
+        title: "Where to loop",
+        s: "B",
+        setup: "Two runs looping 12 layers for three passes, at equal training compute: the middle 12 (layers 7–18 in the blog's 1-based numbering, 6–17 in config) or the last 12. A cell is how much compute a no-loop baseline would need to match the looped run's loss at training step 2,000, as a multiple of the compute used, with the lowest and highest estimates across the same three evaluations.",
+        heads: ["Looped layers", "", "Against"],
+        cols: ["Lowest", "Highest"],
+        unit: "×",
+        rows: [
+          { k: "Middle 12", vs: "No loop", v: [1.51, 1.91], verdict: "kept", note: "Larger gains than the last-12 loop on 27 of 28 evaluations" },
+          { k: "Last 12", vs: "No loop", v: [1.24, 1.36], verdict: "rejected" },
+        ],
+        notes: [
+          { t: "Looping against not looping, both unpruned on the scaling ladder: the non-looping model cost 7.5% less compute to train but needed 140% more inference compute to match the looped model's loss on 512K-token agentic traces.", s: "B" },
+        ],
+      },
+      {
+        title: "Loop passes at inference (variable-loop sibling)",
+        s: "C",
+        setup: "TML-d24-varloop-research, one set of weights midtrained with 1–5 passes (sampled 1:2:6:2:1) and post-trained at 3, run at each pass count. Cells are scores in percent from its Hugging Face card. Inkling 2 Mini, which always runs 3 passes, is in the note; Thinking Machines cautions that the two models' later training differs.",
+        heads: ["Benchmark"],
+        heat: "none",
+        cols: ["1 pass", "2", "3", "4", "5"],
+        unit: "%",
+        digits: 1,
+        rows: [
+          { k: "DeepSWE v1.1", v: [0.7, 28.3, 47.4, 46.9, 48.2], note: "Inkling 2 Mini 48.2" },
+          { k: "SWE-bench Pro v2 (Hard)", v: [39.7, 69.1, 78.9, 76.0, 78.4], note: "Inkling 2 Mini 77.9" },
+          { k: "SWE-bench Verified", v: [56.3, 76.5, 78.7, 79.3, 79.6], note: "Inkling 2 Mini 79.2" },
+          { k: "BrowseComp, no context management", v: [29.4, 53.8, 65.7, 69.4, 71.0], note: "Inkling 2 Mini 76.0" },
+          { k: "JobBench", v: [22.8, 55.1, 63.8, 61.8, 63.3], note: "Inkling 2 Mini 49.6" },
+          { k: "GPQA Diamond", v: [69.6, 79.2, 84.2, 81.9, 83.1], note: "Inkling 2 Mini 86.6" },
+          { k: "HLE, text only", v: [10.5, 20.0, 24.9, 25.4, 25.9], note: "Inkling 2 Mini 30.7" },
+          { k: "Apex 2025", v: [3.1, 10.4, 19.8, 15.6, 18.8], note: "Inkling 2 Mini 34.4" },
+          { k: "ComplexConstraints v1.1", v: [4.5, 26.0, 37.9, 39.6, 38.9], note: "Inkling 2 Mini 33.4" },
+          { k: "MRCR v2, 8-needle 256K–512K", v: [27.2, 65.2, 89.2, 93.4, 92.1], note: "Inkling 2 Mini 46.4" },
+          { k: "GraphWalks BFS 256K", v: [23.5, 56.0, 64.3, 64.3, 63.8], note: "Inkling 2 Mini 69.7" },
+          { k: "MathVision", v: [74.8, 84.9, 86.6, 87.8, 88.1], note: "Inkling 2 Mini 89.0" },
+          { k: "BabyVision, no tools", v: [32.7, 44.9, 50.3, 50.3, 49.2], note: "Inkling 2 Mini 53.4" },
+          { k: "SimpleQA Verified", v: [6.3, 6.5, 7.3, 6.8, 6.7], note: "Inkling 2 Mini 8.4" },
+          { k: "AA-Omniscience accuracy", v: [15.5, 16.3, 18.4, 18.0, 17.4], note: "Inkling 2 Mini 21.3" },
+          { k: "WorldVQA", v: [11.3, 13.0, 14.2, 14.3, 13.5], note: "Inkling 2 Mini 15.2" },
+          { k: "FORTRESS adversarial", v: [89.0, 90.4, 90.0, 89.9, 89.4], note: "Inkling 2 Mini 89.5" },
+        ],
+        notes: [
+          { t: "Most gains come by 3 passes, the count the model was mostly trained and post-trained at. Long-context retrieval, math and agentic coding gain the most; closed-book factual QA barely moves, which the blog reads as knowledge depending on total parameters rather than depth.", s: "B+C" },
+          { t: "No-CoT time horizon on a Think Fast subset (answers forced without reasoning): 16 s at 1 pass, 26 s at 2, 37 s at 3, 42 s at 5 and 40 s at 10 passes, which is twice the most the model was trained with. Inkling 2 Mini scores 41 s. N-Hop Lookup, a pure serial-reasoning task, keeps improving out to 10 passes.", s: "B" },
+          { t: "GPQA Diamond questions solved at every pass count: mean reasoning 3,703 tokens at 1 pass, 1,731 at 3 and 1,661 at 5, with unchanged words per sentence (8.9, 8.7, 8.7) and dictionary-word share (94.6%, 94.5%, 94.4%). Hedges such as \"wait\" fall from 9.7 to 3.6 per answer.", s: "B" },
+          { t: "LinuxArena stealth rate against a weaker monitor that sees only tool calls: 1.0%, 2.5%, 4.0%, 2.8% and 5.0% at 1–5 passes, which the blog calls no clear trend. A helpful-only Inkling 2 Mini scored 3.9%; Qwen3.8-27B 20.5%.", s: "B" },
+        ],
+      },
+    ],
+    pretrain: {
+      headline: "Taken from Thinking Machines' mainline scaling ladder and trained on its mainline data mix in NVFP4. It started with 384 experts, was pruned to 128 in midtraining, then healed on 1T tokens distilled from a larger internal Inkling. Pretraining token counts are not disclosed.",
+      stats: [
+        { k: "Tokens", v: "Not disclosed, apart from the 1T-token healing phase", s: "B" },
+        { k: "Recipe", v: "Mainline ladder, data mix and quantization; the changes were expert pruning and looping", s: "B" },
+        { k: "Precision", v: "NVFP4 experts in every forward pass from pretraining through RL; last 4 layers MXFP8", s: "B" },
+        { k: "Hardware", v: "NVIDIA GB300 (hardware-accelerated NVFP4 kernel)", s: "B" },
+        { k: "Cost of looping", v: "7.5% more training compute than the same model without loops", s: "B" },
+      ],
+      stages: [
+        { name: "Healing after pruning", tokens: "1T", tokensB: 1000, detail: "After pruning 384 → 128 experts per layer, distillation from a larger internal Inkling model recovers the pre-pruning performance.", s: "B" },
+      ],
+      mixes: [],
+      notes: [
+        { t: "Pruning happened once, in midtraining, keeping the 128 most-used experts in each layer.", s: "B" },
+        { t: "The variable-loop sibling shares pretraining and the first stage of midtraining with Inkling 2 Mini, then trains with 1–5 passes sampled 1:2:6:2:1.", s: "C" },
+      ],
+    },
+    sft: {
+      headline: "SFT on a data mix similar to Inkling 2 Small's.",
+      stats: [],
+      stages: [],
+      mixes: [],
+      notes: [],
+    },
+    rl: {
+      headline: "RL totalling 2.2T tokens over 2,000 steps, followed by on-policy distillation for alignment, as for Inkling 2 Small.",
+      stats: [
+        { k: "RL tokens", v: "2.2T over 2,000 steps", s: "B" },
+        { k: "Tokens per step", v: "≈ 1.1B (2.2T ÷ 2,000)", s: "D" },
+        { k: "Loop passes", v: "3 throughout (the variable-loop sibling was also post-trained at 3)", s: "B+C" },
+      ],
+      methods: [
+        { name: "On-policy distillation for alignment", t: "An extra alignment phase trained by on-policy distillation, the same approach as Inkling 2 Small.", s: "B" },
+      ],
+      notes: [
+        { t: "Known failure modes from the card: long, repetitive reasoning loops when debugging, destructive tool actions without confirmation, and reasoning that is never fully off even at minimum effort.", s: "B" },
       ],
     },
   },
@@ -3584,6 +3802,143 @@ window.MODELS = [
       ],
       notes: [
         { t: "Open-sourced: training dynamics, RL environments and the RL framework.", s: "R" },
+      ],
+    },
+  },
+
+  /* ------------------------------------------------------------------ */
+  {
+    id: "qwen4max",
+    slug: "qwen4-max",
+    glance: {"date": "2026-11-15", "attn": "Gated DeltaNet + QSA · 3:1", "moe": "MoE · n/d", "tokens": "n/d", "report": "Blog", "sig": "Closed 2.4T-A71B flagship on the Qwen4 design: 4-stream gated residual, 328B n-gram embedding"},
+    benchSource: { s: "B", t: "Launch blog chart (tier 2), column 'Qwen4-Max'; the thinking effort is not stated. Several rows come from outside leaderboards, as the blog's footnotes say: APEX-Agents v1.1 (Mercor), AA-Briefcase v1.1 and AutomationBench-AA (Artificial Analysis), CodeArena and AgentArena (LM Arena), HLAB-Vals-1.1 (Vals Index) and Agents' Last Exam v1.1 (its own leaderboard). The chart's Qwen3.8-Max column is the 0902 API snapshot, not the open weights listed on this page." },
+    name: "Qwen4-Max",
+    org: "Alibaba Qwen",
+    released: "2026-11-15 (API; a preview ran on Model Studio from 2026-11-11)",
+    license: "Closed weights: API only (QwenCloud Token Plan and API, QwenWork, Qoder, QwenStudio). Qwen says smaller Qwen4 models will be open-sourced",
+    params: { total: "2.4T", active: "71B" },
+    contextShort: "1M",
+    modalitiesShort: "Text, image, video → text",
+    tagline:
+      "Qwen's closed flagship and the first Max model on the Qwen4 architecture: 2.4T backbone parameters with 71B active, plus a 328B-parameter n-gram embedding. Three Gated DeltaNet layers for every Qwen Sparse Attention layer, a four-stream gated residual and MTP. No weights or config are published, so the layer count, widths and expert setup are unknown; the mechanism details below come from Qwen's open qwen4_exp code for the same architecture family.",
+    disclosure: { arch: "partial", pretrain: "partial", sft: "none", rl: "none" },
+    docs: [
+      { kind: "B", label: "Qwen4-Max launch blog", url: "https://qwen.ai/blog?id=qwen4-max" },
+      { kind: "B", label: "Model Studio: qwen4-max-preview", url: "https://docs.modelstudio.console.alibabacloud.com/en/model-studio/qwen4-max-preview" },
+      { kind: "C", label: "transformers implementation (qwen4_exp; architecture family, no Qwen4-Max config)", url: "https://github.com/huggingface/transformers/tree/main/src/transformers/models/qwen4_exp" },
+      { kind: "X", label: "Qwen on X: preview announcement", url: "https://x.com/Alibaba_Qwen/status/2120335993643684315" },
+      { kind: "X", label: "Qwen on X: \"Meet Qwen4-Max\"", url: "https://x.com/Alibaba_Qwen/status/2122148127520289151" },
+    ],
+    layers: [],
+    layersNote: "No config is published. The blog's architecture figure shows a repeating unit of 3 Gated DeltaNet layers and 1 QSA layer, each followed by MoE, but not how many layers there are.",
+    kv: null,
+    specs: {
+      params: { v: "2.4T backbone / 71B active, plus 328B n-gram embedding parameters", s: "B" },
+      sparsity: { v: "3.0% (71B / 2.4T backbone)", s: "D" },
+      layers: { v: "Not published", s: "B" },
+      hidden: { v: "Not published", s: "B" },
+      vocab: { v: "Not published", s: "B" },
+      context: { v: "1M tokens; up to 393,216 output tokens, thinking included (Model Studio)", s: "B" },
+      mixer: { v: "Hybrid: Gated DeltaNet (linear attention) and Qwen Sparse Attention (QSA)", s: "B" },
+      heads: { v: "Not published", s: "B" },
+      pattern: { v: "3 Gated DeltaNet : 1 QSA, repeated. A lightweight indexer picks context for QSA at micro-block granularity (blog). In the qwen4_exp code, the indexer's query heads score average-pooled key blocks, QSA attends to the top contiguous blocks, and the incomplete trailing block is always kept", s: "B+C" },
+      position: { v: "Not published. In the qwen4_exp code: partial M-RoPE on the QSA layers only; DeltaNet layers have no explicit position encoding", s: "C" },
+      attnExtras: { v: "Not published for Max. In the qwen4_exp code: sigmoid output gate and per-head QK-norm; the QSA indexer is multi-query over pooled key blocks, with ReLU dot-product scores summed over heads", s: "C" },
+      ssm: { v: "Not published for Max. In the qwen4_exp code: Gated DeltaNet with a kernel-4 causal conv on q, k, v, L2-normed q and k, a learned decay and write gate, an FP32 state of 128 × 128 per value head, and a sigmoid-gated RMSNorm on the output", s: "C" },
+      moe: { v: "MoE after every mixer (blog figure); expert count and top-k not published", s: "B" },
+      shared: { v: "Not published", s: "B" },
+      expertDim: { v: "Not published", s: "B" },
+      latent: { v: "No (qwen4_exp code)", s: "C" },
+      routing: { v: "Not published", s: "B" },
+      dense: { v: "Not published", s: "B" },
+      act: { v: "Not published (SwiGLU in the qwen4_exp code)", s: "C" },
+      norm: { v: "Gated Residual (GR): four parallel residual branches with dynamic read and write gates around every mixer and MoE block, and a final GR read before the prediction head (blog). In the qwen4_exp code, each branch is RMSNorm'd, the read is a sigmoid-gated mix of the branches through a low-rank mixer (hc_lowrank), and the write scales the block output per branch. GR replaces both the pre-norm and the final norm", s: "B+C" },
+      head: { v: "Vocabulary embedding plus an n-gram embedding (328B parameters) that feeds only the second layer (blog). In the qwen4_exp code, the n-gram embedding looks up hashed token n-grams, passes them through a dilated depthwise conv and gates them into each residual branch. Tied or untied head not published", s: "B+C" },
+      mtp: { v: "MTP modules (blog figure); count not published", s: "B" },
+      kv: { v: "Not computable: layer count, KV heads and head size are unpublished", s: "B" },
+      state: { v: "Not computable: DeltaNet layer and head counts are unpublished", s: "B" },
+      precision: { v: "Not applicable (no weights released)", s: "B" },
+      modalities: { v: "Text, images and video in; text out (native vision)", s: "B" },
+      encoders: { v: "Vision encoder, details not published (Qwen3.5-style in the qwen4_exp code)", s: "B+C" },
+    },
+    paramBreakdown: null,
+    highlights: [
+      { t: "<b>Qwen4 at Max scale.</b> The design previewed in Qwen3.8-Flash-Next (Gated DeltaNet with sparse attention, the gated four-branch residual and the n-gram embedding) now runs at 2.4T. Qwen calls it the new Qwen4 architecture.", s: "B" },
+      { t: "<b>Fewer active parameters, better compression.</b> Qwen4-Max-Base reaches 5–13% lower bits-per-byte than Qwen3.8-Max-Base on Qwen's in-house sets while activating 71B parameters instead of 95B.", s: "B" },
+      { t: "<b>A 328B n-gram memory.</b> Hashed n-gram lookups at the second layer add 328B parameters on top of the 2.4T backbone, about 6× the 51B in Qwen3.8-Flash-Next. They cost memory but little compute per token.", s: "B+D" },
+      { t: "<b>Shorter answers for the same work.</b> Qwen reports about 24% (Xhigh) and 35% (High) fewer tokens on Work360, and 48–49% fewer on Terminal-Bench 4.0. Cost per Work360 task fell from $4.43 to $1.67.", s: "B" },
+      { t: "<b>Closed, for now.</b> Unlike Qwen3.8-Max, the Qwen4 flagship ships as an API only. Qwen says smaller models in the family are coming as open weights.", s: "B" },
+    ],
+    refs: {
+      arch: [
+        { label: "Launch blog: architecture", url: "https://qwen.ai/blog?id=qwen4-max", s: "B" },
+        { label: "Model Studio: qwen4-max-preview", url: "https://docs.modelstudio.console.alibabacloud.com/en/model-studio/qwen4-max-preview", s: "B" },
+        { label: "transformers qwen4_exp (family code)", url: "https://github.com/huggingface/transformers/tree/main/src/transformers/models/qwen4_exp", s: "C" },
+      ],
+      pretrain: [{ label: "Launch blog: pre-training", url: "https://qwen.ai/blog?id=qwen4-max", s: "B" }],
+      sft: [],
+      rl: [{ label: "Launch blog: token efficiency", url: "https://qwen.ai/blog?id=qwen4-max", s: "B" }],
+      tricks: [
+        { label: "Launch blog", url: "https://qwen.ai/blog?id=qwen4-max", s: "B" },
+        { label: "transformers qwen4_exp (family code)", url: "https://github.com/huggingface/transformers/tree/main/src/transformers/models/qwen4_exp", s: "C" },
+      ],
+      bench: [{ label: "Launch blog: performance", url: "https://qwen.ai/blog?id=qwen4-max", s: "B" }],
+    },
+    tricks: [
+      { cat: "Long context", name: "Micro-block sparse attention", t: "A lightweight indexer selects which micro-blocks of context each QSA layer attends to, and three Gated DeltaNet layers sit between QSA layers. Qwen describes this as the first hybrid of linear and sparse attention.", s: "B+C" },
+      { cat: "Architecture", name: "N-gram embedding at layer 2", t: "Context-based n-gram lookups enter only at the second layer. In the qwen4_exp code the lookup needs only token IDs, and its tables shard by vocabulary row under tensor parallelism.", s: "B+C" },
+      { cat: "Optimization & stability", name: "No loss spikes at 2.4T", t: "Qwen reports a smooth pre-training loss curve with no spikes across the 2.4T run.", s: "B" },
+      { cat: "Inference", name: "Effort levels", t: "Thinking is on by default. reasoning_effort takes low, medium or xhigh, and xhigh is the default.", s: "B" },
+      { cat: "Inference", name: "Price cut", t: "The blog says API prices were lowered without giving numbers. Qwen's launch post on X lists $1.5 per million input tokens, $4.5 per million output tokens and $0.075 per million cached input tokens.", s: "B+X" },
+      { cat: "Data", name: "Cyber data filtering", t: "Training data on cyber security was filtered to keep defensive tasks and remove offensive ones.", s: "B" },
+    ],
+    baseBench: {
+      s: "B",
+      t: "Launch blog, bits-per-byte × 10 on Qwen's in-house sets (lower is better). The lowest value in each row is bold. GLM-5.3 and Kimi-K3.1-Pro are post-trained models, not bases. The blog says Qwen4-Max-Base is 5–13% lower than Qwen3.8-Max-Base while activating 25% fewer parameters.",
+      lower: true,
+      bars: false,
+      digits: 2,
+      cols: ["Qwen4-Max-Base", "Qwen3.8-Max-Base", "GLM-5.3 (post-trained)", "DeepSeek-V4-Pro-Base", "Kimi-K3.1-Pro (post-trained)"],
+      sizes: ["2.4T / 71B", "2.4T / 95B", "", "1.6T / 49B", ""],
+      rows: [
+        { cat: "BPB × 10", k: "Knowledge", set: "in-house", v: [4.86, 5.60, 5.87, 5.07, 4.88] },
+        { cat: "BPB × 10", k: "Code", set: "in-house", v: [1.67, 1.88, 1.90, 2.04, 1.83] },
+        { cat: "BPB × 10", k: "QA", set: "in-house", v: [2.94, 3.10, 3.20, 3.67, 3.04] },
+        { cat: "BPB × 10", k: "STEM", set: "in-house", v: [2.70, 3.04, 3.24, 3.23, 2.74] },
+      ],
+    },
+    pretrain: {
+      headline: "Little disclosed: no token count or data mix. The blog reports a spike-free 2.4T run and 5–13% lower bits-per-byte than Qwen3.8-Max-Base with 25% fewer active parameters.",
+      stats: [
+        { k: "Tokens", v: "Not disclosed", s: "B" },
+        { k: "Architecture", v: "Qwen4 (Gated DeltaNet + QSA, Gated Residual, n-gram embedding)", s: "B" },
+        { k: "BPB vs Qwen3.8-Max-Base", v: "5–13% lower (Knowledge 4.86 vs 5.60, Code 1.67 vs 1.88, QA 2.94 vs 3.10, STEM 2.70 vs 3.04; × 10)", s: "B" },
+        { k: "Loss", v: "Smooth, no spikes", s: "B" },
+      ],
+      stages: [],
+      mixes: [],
+      notes: [
+        { t: "The base-model table below compares bits-per-byte only. Qwen published no standard base-model benchmarks for Qwen4-Max-Base.", s: "B" },
+      ],
+    },
+    sft: {
+      headline: "Not disclosed.",
+      stats: [],
+      stages: [],
+      mixes: [],
+      notes: [],
+    },
+    rl: {
+      headline: "Not disclosed. The blog reports outcomes (token efficiency and Qwen's Work360 suite) but no post-training method.",
+      stats: [
+        { k: "Work360", v: "52.69 (Qwen3.8-Max: 47.74)", s: "B" },
+        { k: "Work360 taxonomy", v: "26 top-level domains, 182 second-level, 721 third-level", s: "B" },
+        { k: "Tokens per task", v: "About 24% fewer at Xhigh and 35% fewer at High on Work360; 48% and 49% fewer on Terminal-Bench 4.0", s: "B" },
+        { k: "Cost per Work360 task", v: "$4.43 → $1.67 (−62%)", s: "B" },
+      ],
+      methods: [],
+      notes: [
+        { t: "Qwen also open-sourced the Qwen-Live-Delivery-Plugin alongside the launch.", s: "B" },
       ],
     },
   },
@@ -6582,6 +6937,7 @@ window.MODELS = [
  */
 window.BENCHMARKS = [
   { cat: "Agentic coding", name: "SWE-bench Verified", unit: "%", scores: {
+      inkling2m: { v: 79.2, n: "bash only" },
       inkling2s: { v: 82.2 },
       ripple: { v: 76.5, n: "OpenCode" },
       lfm3: { v: 43.4, n: "OpenCode" },
@@ -6598,6 +6954,7 @@ window.BENCHMARKS = [
       super: { v: 71.1, n: "OpenCode, 3-run mean" },
       lightning: { v: 52.2, n: "NeMo Gym" } } },
   { cat: "Agentic coding", name: "SWE-bench Multilingual", unit: "%", scores: {
+      inkling2m: { v: 73.7, n: "bash only" },
       inkling2s: { v: 81.2 },
       lfm3: { v: 23.0, n: "OpenCode" },
       laguna: { v: 78.5, n: "pool harness, avg@4" },
@@ -6608,6 +6965,7 @@ window.BENCHMARKS = [
       ultra3: { v: 67.7 },
       beam: { v: 78.3, n: "launch blog: 78.0" }, super: { v: 67.72, n: "OpenCode" }, lightning: { v: 37.13 } } },
   { cat: "Agentic coding", name: "SWE-bench Pro", unit: "%", cmp: false, scores: {
+      inkling2m: { v: 77.9, n: "v2 Hard, mini-swe-agent v2.4.6" },
       inkling2s: { v: 86.3, n: "v2 Hard, Scale AI; 97.7 on v2 Full; mini-swe-agent v2.4.6 (HF card)" },
       ripple: { v: 61.42, n: "v1.0, OpenCode; 79.1 on v2.0 Hard with Terminus 2" },
       laguna: { v: 59.4, n: "public set, pool harness, avg@4" },
@@ -6624,6 +6982,7 @@ window.BENCHMARKS = [
       beam: { v: 66.1, n: "v1, 731 tasks; 76.5 on the 51-task v2-Hard subset; launch blog: 65.5 / 77.2" },
       super: { v: 51.78, n: "public set, OpenCode" } } },
   { cat: "Agentic coding", name: "Terminal-Bench 2.1", unit: "%", scores: {
+      inkling2m: { v: 71.6, n: "pi v0.83.0" },
       inkling2s: { v: 85.1, n: "Pi harness; 81.3 with Terminus" },
       ripple: { v: 80.52, n: "blog; card 80.5, also 80.5 with Terminus 2 at 128K" },
       ml4: { v: 90.2, n: "report Table 3" },
@@ -6652,6 +7011,8 @@ window.BENCHMARKS = [
       super: { v: 60.67, n: "Terminus 2, 8 runs, 3 h timeout" },
       lightning: { v: 24.44 } } },
   { cat: "Agentic coding", name: "DeepSWE v1.1", unit: "%", cmp: false, scores: {
+      inkling2m: { v: 48.2, n: "mini-swe-agent v2.4.6" },
+      qwen4max: { v: 75.7, n: "launch blog chart" },
       inkling2s: { v: 72.1, n: "Datacurve; mini-swe-agent v2.4.6 (HF card)" },
       ripple: { v: 44.3, n: "Terminus 2" },
       kimik31: { v: 75.5, n: "Claude Code harness" },
@@ -6695,6 +7056,7 @@ window.BENCHMARKS = [
       beam: { v: 88.3, n: "model card only; not in the report's tables" }, super: { v: 88.22, n: "v6, 454 problems" } } },
 
   { cat: "Tool use & agents", name: "MCP-Atlas", unit: "%", scores: {
+      inkling2m: { v: 82.7, n: "public set" },
       inkling2s: { v: 85.0, n: "public set (85.4 full), Scale AI" },
       ripple: { v: 71.67 },
       lfm3: { v: 32.57 },
@@ -6726,6 +7088,7 @@ window.BENCHMARKS = [
       glimmer: { v: 94.1, n: "TauBench telecom, 4 runs" },
       super: { v: 73.19 }, lightning: { v: 59.65 } } },
   { cat: "Tool use & agents", name: "BrowseComp", unit: "%", cmp: false, scores: {
+      inkling2m: { v: 79.0, n: "with compaction; 76.0 with no context management (varloop card)" },
       inkling2s: { v: 90.2, n: "with compaction (HF card)" },
       kimik31: { v: 92.1, n: "compaction at 200K, 500 steps, top-p 1.0" },
       ml4: { v: 85.0, n: "internal subset; launch blog: 84.5; SFT checkpoint 75.0" },
@@ -6750,6 +7113,7 @@ window.BENCHMARKS = [
       muse: { v: 80.4, n: "361 tasks, 200 steps, 4 attempts" },
       super: { v: 52.14, n: "361 tasks, 100 steps, 3 runs" } } },
   { cat: "Tool use & agents", name: "GDPval-AA v2 (Elo)", unit: "elo", cmp: false, scores: {
+      inkling2m: { v: 1319, n: "v2.1" },
       inkling2s: { v: 1630, n: "v2.1, Artificial Analysis" },
       kimik31: { v: 1846, n: "v2.1, Artificial Analysis" },
       hy4: { v: 1678, n: "official" },
@@ -6781,6 +7145,8 @@ window.BENCHMARKS = [
       kimik3: { v: 76.5, n: "official leaderboard" },
       inkling: { v: 45.5 }, muse: { v: 72.8 } } },
   { cat: "Tool use & agents", name: "JobBench", unit: "%", scores: {
+      inkling2m: { v: 49.6 },
+      qwen4max: { v: 68.5, n: "updated dataset and evaluation code (blog)" },
       inkling2s: { v: 70.5 },
       hy4: { v: 61.7 },
       mimo26f: { v: 61.2 },
@@ -6791,6 +7157,8 @@ window.BENCHMARKS = [
       mimo26: { v: 62.0 },
       kimik3: { v: 54.3, n: "official leaderboard" }, muse: { v: 61.8 } } },
   { cat: "Tool use & agents", name: "AutomationBench (public)", unit: "%", cmp: false, scores: {
+      inkling2m: { v: 41.8, n: "AutomationBench-AA v1.0.6" },
+      qwen4max: { v: 72.5, n: "AutomationBench-AA, Artificial Analysis (blog)" },
       inkling2s: { v: 45.6, n: "v1.0.6" },
       ripple: { v: 36.4, n: "public set" },
       kimik31: { v: 73.3, n: "AutomationBench-AA, Artificial Analysis" },
@@ -6809,11 +7177,13 @@ window.BENCHMARKS = [
       kimik3: { v: 30.8, n: "600-task public subset" },
       dsv41: { v: 54.8, n: "v1.0.6 public set; -1017: 60.5" }, beam: { v: 39.3, n: "public split; launch blog: 37.0" } } },
   { cat: "Tool use & agents", name: "DeepSearchQA", unit: "%", scores: {
+      inkling2m: { v: 85.3, n: "with compaction" },
       inkling2s: { v: 90.9, n: "with compaction (HF card)" },
       kimik3: { v: 95.0, n: "F1" },
       glimmer: { v: 74.6, n: "internal, 4 runs" }, beam: { v: 80.5, n: "discard-all context compaction; launch blog: 80.1" } } },
 
   { cat: "Reasoning & knowledge", name: "GPQA Diamond", unit: "%", scores: {
+      inkling2m: { v: 86.6 },
       inkling2s: { v: 93.0 },
       ripple: { v: 85.2 },
       kimik31: { v: 94.2 },
@@ -6838,6 +7208,7 @@ window.BENCHMARKS = [
       glimmer: { v: 83.5, n: "AA" },
       muse: { v: 89.0, n: "AA" }, beam: { v: 90.6, n: "launch blog: 90.5" }, super: { v: 89.52, n: "8 repeats" }, lightning: { v: 76.45 } } },
   { cat: "Reasoning & knowledge", name: "HLE, text, no tools", unit: "%", scores: {
+      inkling2m: { v: 30.7 },
       inkling2s: { v: 44.1, n: "Artificial Analysis" },
       hy4: { v: 43.4 },
       minimaxm31f: { v: 43.4, n: "text-only subset (2,158)" },
@@ -6869,6 +7240,7 @@ window.BENCHMARKS = [
       beam: { v: 51.2, n: "launch blog only (not in the report); card: 51.1" },
       super: { v: 46.01, n: "Python + web search, internal harness" } } },
   { cat: "Reasoning & knowledge", name: "HLE-Diamond, no tools", unit: "%", scores: {
+      inkling2m: { v: 15.2 },
       inkling2s: { v: 28.7, n: "Artificial Analysis" },
       kimik31: { v: 39.4 },
       ml4: { v: 17.3, n: "Artificial Analysis" }, muse: { v: 26.1, n: "Scale AI" } } },
@@ -6891,6 +7263,7 @@ window.BENCHMARKS = [
       glimmer: { v: 43.6 },
       muse: { v: 58.5, n: "AA" }, beam: { v: 49.2, n: "launch blog: 49.7" }, super: { v: 47.13, n: "subtask accuracy" }, lightning: { v: 32.74 } } },
   { cat: "Reasoning & knowledge", name: "CritPt", unit: "%", scores: {
+      inkling2m: { v: 17.0, n: "v2 hard subset; 31.4 on v2 full" },
       inkling2s: { v: 35.0, n: "v2 hard subset, Artificial Analysis; 55.7 on v2 full" },
       ml4: { v: 26.0, n: "v2 hard subset, Artificial Analysis" },
       motif3: { v: 6.6 },
@@ -6906,6 +7279,7 @@ window.BENCHMARKS = [
       dsv4pro: { v: 90.2, n: "Preview" },
       ultra3: { v: 74.9, n: "no tools; 84.8 with tools" }, super: { v: 88.36, n: "16 repeats, no tools" } } },
   { cat: "Reasoning & knowledge", name: "AA-Omniscience Index", unit: "idx", cmp: false, scores: {
+      inkling2m: { v: -8.6, n: "v1.1; non-hallucination rate 63.4%" },
       inkling2s: { v: 16.1, n: "v1.1; non-hallucination rate 73.3%" },
       lfm3: { v: 0.5, n: "public subset" },
       lfm25: { v: -24.7 },
@@ -6921,6 +7295,7 @@ window.BENCHMARKS = [
       super: { v: 26.2, n: "non-hallucination 69.96" }, lightning: { v: 17.47, n: "non-hallucination 68.88" } } },
 
   { cat: "Long context & instructions", name: "AA-LCR", unit: "%", scores: {
+      inkling2m: { v: 80.0, n: "v1.1" },
       inkling2s: { v: 83.3, n: "v1.1, Artificial Analysis" },
       ripple: { v: 75.0 },
       lfm3: { v: 52.83 },
@@ -6931,6 +7306,7 @@ window.BENCHMARKS = [
       glimmer: { v: 80.0, n: "AA" },
       beam: { v: 78.2, n: "launch blog: 79.3" }, super: { v: 68.63, n: "16 repeats" }, lightning: { v: 52.38 } } },
   { cat: "Long context & instructions", name: "LongBench v2", unit: "%", scores: {
+      inkling2m: { v: 66.9 },
       inkling2s: { v: 70.6 },
       ultra3: { v: 61.9, n: "≤ 1M" },
       qwen38: { v: 66.3 }, beam: { v: 67.5, n: "launch blog: 66.9" } } },
@@ -6954,6 +7330,7 @@ window.BENCHMARKS = [
       beam: { v: 79.6, n: "launch blog: 79.7" }, super: { v: 70.86, n: "strict" }, lightning: { v: 72.0, n: "loose" } } },
 
   { cat: "Multimodal", name: "BabyVision", unit: "%", cmp: false, scores: {
+      inkling2m: { v: 53.4, n: "no tools; 88.8 with Python" },
       inkling2s: { v: 68.6, n: "no tools; 93.7 with Python (HF card 93.6)" },
       kimik31: { v: 95.4, n: "with Python" },
       qwen3827: { v: 65.7, n: "85.6 with code interpreter" },
@@ -6965,6 +7342,7 @@ window.BENCHMARKS = [
   { cat: "Multimodal", name: "Video-MME v2", unit: "%", cmp: false, scores: {
       muse: { v: 61.5, n: "with subtitles" }, super: { v: 32.85, n: "no subtitles" } } },
   { cat: "Multimodal", name: "ZeroBench (tools)", unit: "%", scores: {
+      inkling2m: { v: 34.0, n: "main, with Python; 17.0 without" },
       inkling2s: { v: 44.0, n: "main, with Python; 29.0 without (HF card)" },
       kimik31: { v: 63.0, n: "main, pass@5, Python; 39.0 without" },
       kimik3: { v: 41.0, n: "main, pass@5, Python; 23.0 without" },
@@ -6973,6 +7351,7 @@ window.BENCHMARKS = [
   { cat: "Multimodal", name: "WorldVQA (tools)", unit: "%", scores: { muse: { v: 49.4 } } },
   { cat: "Multimodal", name: "IntPhys 2", unit: "%", scores: { muse: { v: 68.3 } } },
   { cat: "Multimodal", name: "CharXiv-RQ", unit: "%", scores: {
+      inkling2m: { v: 80.6 },
       inkling2s: { v: 85.6 },
       kimik31: { v: 89.0 },
       qwen3827: { v: 83.7, n: "90.2 with code interpreter" },
@@ -6983,6 +7362,7 @@ window.BENCHMARKS = [
       inkling: { v: 78.1 },
       glimmer: { v: 78.8 }, super: { v: 80.82 } } },
   { cat: "Multimodal", name: "MathVision", unit: "%", scores: {
+      inkling2m: { v: 89.0 },
       inkling2s: { v: 92.8 },
       qwen3827: { v: 90.0, n: "94.6 with code interpreter" },
       qwen38fn: { v: 90.6, n: "95.7 with code interpreter" },
@@ -7002,9 +7382,11 @@ window.BENCHMARKS = [
   { cat: "Agentic coding", name: "LiveCodeBench Pro (2025 Q2)", unit: "%", scores: {
       lfm3: { v: 31.74 }, glimmer: { v: 64.1 } } },
   { cat: "Reasoning & knowledge", name: "ARC-AGI", unit: "%", scores: {
+      inkling2m: { v: 84.5, n: "ARC-AGI-1; ARC-AGI-2 49.3" },
       inkling2s: { v: 96.5, n: "ARC-AGI-1; ARC-AGI-2 81.7 (HF card)" },
       inklingsm: { v: 84.0, n: "ARC-AGI-1 (ARC Prize); ARC-AGI-2 40.1" }, glimmer: { v: 66.9, n: "400 tasks, pass@1 over 4" } } },
   { cat: "Reasoning & knowledge", name: "SimpleQA Verified", unit: "%", scores: {
+      inkling2m: { v: 8.4, n: "from the TML-d24-varloop-research card" },
       dsv4flash: { v: 34.1, n: "Preview" },
       dsv4pro: { v: 57.9, n: "Preview" },
       inklingsm: { v: 20.6 }, inkling: { v: 43.9 }, beam: { v: 41.8 } } },
@@ -7016,6 +7398,7 @@ window.BENCHMARKS = [
       inkling2s: { v: 91.0, n: "HF card" },
       inklingsm: { v: 86.7 }, inkling: { v: 88.7 } } },
   { cat: "Multimodal", name: "MMMU-Pro", unit: "%", cmp: false, scores: {
+      inkling2m: { v: 74.9, n: "Standard 10" },
       inkling2s: { v: 81.6, n: "Standard 10, AA" },
       kimik31: { v: 84.1, n: "official protocol; 90.0 with Python" },
       step5: { v: 76.0 },
@@ -7025,6 +7408,7 @@ window.BENCHMARKS = [
       kimik3: { v: 81.6, n: "official protocol; 83.4 with Python" },
       glimmer: { v: 74 }, inkling: { v: 73.5, n: "Standard 10, AA" } } },
   { cat: "Multimodal", name: "CharXiv-RQ with Python", unit: "%", scores: {
+      inkling2m: { v: 88.3 },
       inkling2s: { v: 87.7, n: "HF card 89.1" },
       kimik31: { v: 93.4, n: "mean of 4 runs" },
       inklingsm: { v: 81.3 },
@@ -7034,6 +7418,7 @@ window.BENCHMARKS = [
       minimaxm3: { v: 91.6 },
       kimik3: { v: 91.1, n: "version not stated" }, glimmer: { v: 75.8 } } },
   { cat: "Multimodal", name: "ScreenSpot Pro", unit: "%", scores: {
+      inkling2m: { v: 76.5, n: "87.7 with Python" },
       inkling2s: { v: 83.8, n: "long side capped at 4,096 px; 91.5 with Python (HF card 92.0)" }, glimmer: { v: 75.4 } } },
   { cat: "Audio", name: "VoiceBench", unit: "%", scores: {
       inklingsm: { v: 90.1 }, inkling: { v: 91.4 } } },
@@ -7046,6 +7431,8 @@ window.BENCHMARKS = [
       dsv4pro: { v: 11.8, n: "-0813" },
       glm53: { v: 28.3, n: "Claude Code, avg@3, 10 h" }, dsv41: { v: 30.0 } } },
   { cat: "Agentic coding", name: "Terminal-Bench 4.0", unit: "%", scores: {
+      inkling2m: { v: 5.6, n: "mini-swe-agent v2.4.6" },
+      qwen4max: { v: 48.5, n: "launch blog chart; it lists Kimi K3.1 at 67.2" },
       inkling2s: { v: 13.1, n: "Artificial Analysis" },
       kimik31: { v: 65.7, n: "Claude Code harness" },
       ml4: { v: 41.0, n: "Artificial Analysis (Coding Agent Index run); preview 28.3 (self-reported)" },
@@ -7056,6 +7443,7 @@ window.BENCHMARKS = [
       dsv4pro: { v: 12.4, n: "-0813" },
       mimo26: { v: 34.9 }, dsv41: { v: 31.2, n: "-1017: 42.3 (Claude Code)" } } },
   { cat: "Agentic coding", name: "ProgramBench", unit: "%", cmp: false, scores: {
+      qwen4max: { v: 31.5, n: "metric not stated; the blog chart lists Kimi K3.1 at 25.0" },
       kimik31: { v: 31.5, n: "binary: share of tasks scoring ≥ 95%; Claude Code" },
       hy4: { v: 17.5, n: "Claude Code, 2,000 turns" },
       mimo26f: { v: 26.0, n: "Almost-solved" },
@@ -7096,6 +7484,7 @@ window.BENCHMARKS = [
       dsv4pro: { v: 5.4, n: "-0813" },
       mimo26: { v: 17.8 }, dsv41: { v: 15.3 } } },
   { cat: "Tool use & agents", name: "Agents' Last Exam", unit: "%", cmp: false, scores: {
+      qwen4max: { v: 46.7, n: "v1.1, official leaderboard (blog)" },
       kimik31: { v: 43.2, n: "v1.1, all 122 tasks, Kimi Code; runs that bypass the task get zero; CLI subset 44.2" },
       hy4: { v: 22.8, n: "ALE-CLI, Claude Code" },
       mimo26f: { v: 27.6 },
@@ -7120,12 +7509,14 @@ window.BENCHMARKS = [
       dsv4flash: { v: 58.6, n: "-0731; Preview 33.0" },
       dsv4pro: { v: 65.3, n: "-0813; Preview 38.3" }, dsv41: { v: 65.6 } } },
   { cat: "Multimodal", name: "Chartography (tools)", unit: "%", scores: {
+      inkling2m: { v: 72.5, n: "with Python; 22.1 without" },
       inkling2s: { v: 80.4, n: "with Python; 36.7 without; HF card 82.1 with Python" },
       kimik31: { v: 90.2, n: "with Python, mean of 5 runs" },
       glm53f: { v: 78.0 }, dsv41: { v: 78.9, n: "-1017: 83.0" } } },
   { cat: "Composite", name: "AA Intelligence Index v4.3", unit: "idx", scores: {
       muse: { v: 39, n: "Artificial Analysis, Oct 7 2026" } } },
   { cat: "Reasoning & knowledge", name: "HLE-Full, no tools", unit: "%", scores: {
+      qwen4max: { v: 51.7, n: "'Humanity's Last Exam' in the blog chart" },
       kimik31: { v: 51.1 },
       dsv41: { v: 36.8, n: "full set; text-only 39.1" },
       kimik3: { v: 43.5, n: "full set incl. images" }, } },
@@ -7141,6 +7532,7 @@ window.BENCHMARKS = [
   { cat: "Tool use & agents", name: "MCPMark-Verified", unit: "%", scores: {
       kimik3: { v: 94.5 }, } },
   { cat: "Tool use & agents", name: "APEX-Agents", unit: "%", scores: {
+      qwen4max: { v: 72.1, n: "v1.1, Mercor leaderboard (blog); it lists Kimi K3.1 at 65.5" },
       kimik31: { v: 69.4, n: "Mercor leaderboard" },
       hy4: { v: 37.1, n: "pass@1" },
       step5: { v: 37.8 },
@@ -7155,6 +7547,7 @@ window.BENCHMARKS = [
       kimik3: { v: 36.6, n: "Harbor, 3 runs on H20" },
       glm53: { v: 39.8, n: "Claude Code, 3-run weighted mean" }, } },
   { cat: "Agentic coding", name: "FrontierCode 2.0", unit: "%", scores: {
+      inkling2m: { v: 15.1, n: "stirrup v0.2.1" },
       inkling2s: { v: 25.4, n: "Artificial Analysis; stirrup v0.2.1 (HF card)" },
       ml4: { v: 19.7, n: "Cognition, private benchmark" }, } },
   { cat: "Agentic coding", name: "AA Coding Agent Index v2", unit: "%", scores: {
@@ -7168,11 +7561,13 @@ window.BENCHMARKS = [
   { cat: "Safety", name: "Harmful cyber request refusal", unit: "%", scores: {
       ml4: { v: 96.6, n: "mean of JailbreakBench 97.3, StrongREJECT 92.6, AgentHarm 100 (cyber subsets); preview 95" }, } },
   { cat: "Composite", name: "AA Intelligence Index v5", unit: "idx", scores: {
+      inkling2m: { v: 20.1, n: "v5.0, Artificial Analysis" },
       inkling2s: { v: 30.6, n: "v5.0, Artificial Analysis; launch post rounds to 31" },
       ml4: { v: 26, n: "Artificial Analysis, from the model card" }, } },
   { cat: "Tool use & agents", name: "AA-Briefcase", unit: "%", scores: {
       ml4: { v: 42.5, n: "Artificial Analysis; preview post: 1,393 Elo" }, } },
   { cat: "Multimodal", name: "GDP.pdf", unit: "%", scores: {
+      inkling2m: { v: 16.8 },
       inkling2s: { v: 25.2, n: "Artificial Analysis" },
       kimik31: { v: 34.6, n: "strict pass rate, Gemini-3.5-Flash judge; 85.7 rubric rate with Python" },
       ml4: { v: 17.6, n: "Artificial Analysis" }, } },
@@ -7189,13 +7584,16 @@ window.BENCHMARKS = [
   { cat: "Safety", name: "KORA Benchmark", unit: "idx", scores: {
       ml4: { v: 1.765, n: "mean score on a 0–2 scale; preview 1.691" }, } },
   { cat: "Tool use & agents", name: "Vals Finance Agent v2.1", unit: "%", scores: {
+      inkling2m: { v: 56.5, n: "Vals" },
       inkling2s: { v: 67.5, n: "Vals" },
       ml4: { v: 61.72, n: "Vals" }, } },
   { cat: "Tool use & agents", name: "Harvey Legal Agent (HLAB v1.1)", unit: "%", cmp: false, scores: {
+      qwen4max: { v: 21.3, n: "HLAB-Vals-1.1, Vals Index (blog)" },
       inkling2s: { v: 21.7, n: "Vals" },
       kimik31: { v: 23.7, n: "all-pass rate, 1,251 public tasks, AA Stirrup harness; version not stated" },
       ml4: { v: 15.83, n: "Vals" }, } },
   { cat: "Agentic coding", name: "Terminal-Bench-Science 0.1", unit: "%", scores: {
+      inkling2m: { v: 1.4, n: "mini-swe-agent v2.4.6" },
       inkling2s: { v: 5.7, n: "Artificial Analysis; mini-swe-agent v2.4.6 (HF card)" },
       kimik31: { v: 38.1, n: "Claude Code harness" }, } },
   { cat: "Agentic coding", name: "BenchCAD (tools)", unit: "%", scores: {
@@ -7203,6 +7601,7 @@ window.BENCHMARKS = [
   { cat: "Agentic coding", name: "ExploitBench", unit: "%", scores: {
       kimik31: { v: 74.7, n: "pass@5 max capability, 300 turns" }, } },
   { cat: "Tool use & agents", name: "BioMysteryBench", unit: "%", scores: {
+      qwen4max: { v: 85.0, n: "launch blog chart" },
       inkling2s: { v: 70.0, n: "Vals; terminus v2 (HF card)" },
       kimik31: { v: 80.6, n: "v11, Kimi Code, Kimi K3 judge" }, } },
   { cat: "Tool use & agents", name: "OfficeQA Pro v2", unit: "%", scores: {
@@ -7210,8 +7609,69 @@ window.BENCHMARKS = [
   { cat: "Tool use & agents", name: "OSWorld v2.1", unit: "%", scores: {
       kimik31: { v: 79.6, n: "Kimi Agent harness" }, } },
   { cat: "Multimodal", name: "PerceptionBench", unit: "%", scores: {
+      inkling2m: { v: 57.5 },
       inkling2s: { v: 64.7 },
       kimik31: { v: 68.3, n: "Moonshot's atomic-perception benchmark" }, } },
+  { cat: "Tool use & agents", name: "Work360", unit: "idx", scores: {
+      qwen4max: { v: 52.69, n: "Qwen in-house work suite; Qwen3.8-Max 47.74" },
+    } },
+  { cat: "Agentic coding", name: "CodeArena (Elo)", unit: "elo", cmp: false, scores: {
+      qwen4max: { v: 1750, n: "LM Arena (blog)" },
+    } },
+  { cat: "Tool use & agents", name: "AA-Briefcase v1.1 (Elo)", unit: "elo", scores: {
+      inkling2m: { v: 1263, n: "Artificial Analysis" },
+      qwen4max: { v: 1686, n: "Artificial Analysis (blog)" },
+    } },
+  { cat: "Tool use & agents", name: "AgentArena (net improvement)", unit: "idx", cmp: false, scores: {
+      qwen4max: { v: 7.5, n: "LM Arena (blog)" },
+    } },
+  { cat: "Reasoning & knowledge", name: "HealthBench Professional", unit: "%", scores: {
+      qwen4max: { v: 60.0, n: "launch blog chart" },
+    } },
+  { cat: "Multimodal", name: "Video-Index", unit: "%", scores: {
+      qwen4max: { v: 68.1, n: "launch blog chart" },
+    } },
+  { cat: "Multimodal", name: "Chartography (no tools)", unit: "%", scores: {
+      inkling2m: { v: 22.1 },
+      qwen4max: { v: 54.2, n: "min_pixels 4096 × 32 × 32 (blog)" },
+      inkling2s: { v: 36.7, n: "without Python; see the tools row" },
+    } },
+  { cat: "Composite", name: "Vals Index v2.2", unit: "%", scores: {
+      inkling2m: { v: 46.5 },
+    } },
+  { cat: "Agentic coding", name: "Vibe Code Bench v1.1", unit: "%", scores: {
+      inkling2m: { v: 77.9, n: "OpenHands (Vals)" },
+    } },
+  { cat: "Agentic coding", name: "SWE-bench Multimodal v2", unit: "%", scores: {
+      inkling2m: { v: 37.9, n: "mini-swe-agent (Vals)" },
+    } },
+  { cat: "Agentic coding", name: "PMPP-Hard (AUC, 0–10 h)", unit: "idx", scores: {
+      inkling2m: { v: 455.82, n: "kernel optimization; pi v0.83.0" },
+    } },
+  { cat: "Tool use & agents", name: "EnterpriseOps-Gym", unit: "%", cmp: false, scores: {
+      inkling2m: { v: 42.0, n: "36.7 with a LangChain ReAct loop (varloop card)" },
+    } },
+  { cat: "Long context & instructions", name: "MRCR v2 (8-needle, 256K–512K)", unit: "%", scores: {
+      inkling2m: { v: 46.4 },
+    } },
+  { cat: "Long context & instructions", name: "GraphWalks BFS (256K)", unit: "%", scores: {
+      inkling2m: { v: 69.7 },
+    } },
+  { cat: "Long context & instructions", name: "ComplexConstraints v1.1", unit: "%", scores: {
+      inkling2m: { v: 33.4, n: "OpenHands v1.45.0" },
+    } },
+  { cat: "Long context & instructions", name: "MultiChallenge", unit: "%", scores: {
+      inkling2m: { v: 50.0, n: "launch post" },
+    } },
+  { cat: "Reasoning & knowledge", name: "Apex 2025", unit: "%", scores: {
+      inkling2m: { v: 34.4 },
+    } },
+  { cat: "Multimodal", name: "OmniDocBench v1.6", unit: "%", scores: {
+      inkling2m: { v: 92.8 },
+    } },
+  { cat: "Multimodal", name: "MuirBench", unit: "%", scores: {
+      inkling2m: { v: 77.5 },
+    } },
 ];
 
 /* Nemotron base-model results (Table 6 of the report). */
@@ -7228,6 +7688,8 @@ window.BASE_BENCHMARKS = {
 
 /* Safety suites differ per lab, so they are listed, not tabulated. */
 window.SAFETY = [
+  { id: "inkling2m", t: "FORTRESS adversarial 89.5% and benign 96.4% (higher is better), StrongREJECT 97.8%. Internal misbehavior 9.8%, covert misbehavior 8.3% and destructive actions 10.2% (lower is better), HoneyBench v0.2 56.7%. Alignment training ends with on-policy distillation, as for Inkling 2 Small. Because looping allows more unverbalized computation, Thinking Machines tested monitorability: CoT controllability stayed at or below 0.1%, and the model could not complete covert side tasks in realistic agentic environments. It concluded the model gives no material uplift beyond existing open weights.", s: "B" },
+  { id: "qwen4max", t: "Last Secure Code Bench: the share of functions that pass both functionality and security tests rose from 22.0% to 31.8%, and fully secure generation at all three granularities from 8% to 14.7%. Offensive cyber data was filtered out of training while defensive tasks were kept. Qwen's internal experts found no large-scale cyber risk and no significant CBRN uplift.", s: "B" },
   { id: "inkling2s", t: "FORTRESS adversarial 83.8% and benign 79.7% (higher is better; ARS 16.2, over-refusal 20.4), StrongREJECT 97.1%, DistressBench 82.0%. Internal misbehavior rate 14.9% against Inkling's 66.8% (lower is better), HoneyBench reward hacking 44 (v0.2-alpha; the HF card gives 52.6% on v0.2), Apollo covert action 8 without a goal and 0 with one. A helpful-only variant gave marginal CBRN uplift without advancing the open-weight frontier. After external testing, the HF card concludes the model adds no material uplift beyond the open-weight ecosystem, and the weights shipped on 12 November.", s: "B+C" },
   { id: "ripple", t: "FORTRESS adversarial 83.8% and benign 95.5% (higher is better), StrongREJECT 97.5%, from the model card at max effort in BF16.", s: "C" },
   { id: "kimik31", t: "No safety suite reported. For the open release Moonshot removed cyber data from mid-training and the RL environments: xdev-bench-hard (pass@3) fell from 90.5% for the unfiltered checkpoint to 81.0%. Moonshot says its cyber capability stays behind proprietary frontier models that have been public for at least three months (ExploitBench 74.7, ExploitGym 20.7).", s: "B" },
@@ -8153,6 +8615,70 @@ window.DIAGRAMS = {
       { row: [
         { l: "LM head", s: "untied, tanh softcap 30", n: true, c: "changed" },
         { l: "Block drafter", s: "5 layers, 8 tokens per step", n: true, c: "changed" },
+      ] },
+    ],
+  },
+
+  inkling2m: {
+    s: "B+C",
+    base: "Inkling 2 Small",
+    caption: "One Inkling 2 Mini layer. 24 layers are stored (20 sliding-window, 4 global); layers 6–17 run three times, so a token makes 48 layer visits. The layer itself is Inkling 2 Small's at half the width. What is new is the loop: passes 2 and 3 restart from layer 5's output, and each looped layer gates a message from the previous pass into its Q, K, V and MoE inputs. Orange tags mark steps that are new or changed from Inkling 2 Small. Built from modular_inkling2_loop.py and config.json; the loop schedule is also in the launch post.",
+    inputs: [
+      { row: [
+        { l: "Token embedding", s: "201,024 × 2304", c: "changed" },
+        { l: "PE ViT", s: "23 layers × 1024, 20 px patches", n: true },
+      ] },
+      { row: [
+        { l: "RMSNorm", s: "learned gain", n: true },
+        { l: "2×2 merge → MLP", s: "4096 → 2304", c: "changed" },
+      ] },
+      { l: "Loop schedule", s: "L0–5 once → L6–17 × 3 → L18–23 once", n: true, c: "new" },
+    ],
+    block: {
+      title: "Decoder layer",
+      repeat: "× 24 (48 visits)",
+      stream: "AttnRes: 6-layer block sums",
+      note: "Passes 2–3 restart from L5's state and add the messages; each pass keeps its own KV and conv cache",
+      branches: [
+        {
+          title: "Attention (20 sliding-window + 4 global)",
+          steps: [
+            { l: "AttnRes mix", s: "softmax(w · RMSNorm(blocks)), FP32", n: true },
+            { l: "Message gate (passes 2–3)", s: "(1−tanh f)·h + tanh(m)·msg, rank 64", n: true, c: "new" },
+            { l: "RMSNorm", s: "learned gain; global: one per Q, K, V" },
+            { row: [
+              { l: "Q projection", s: "24 heads × 128", c: "changed" },
+              { l: "K, V + short conv", s: "8 KV heads, k=4", n: true },
+              { l: "Relative coeffs", s: "16 per head, clip 8", n: true },
+            ] },
+            { l: "Q, K L2 clip 22.6; V RMSNorm", s: "replaces QK-norm", n: true },
+            { l: "Attention + rel. bias + sink", s: "1/√d; window 1024, or full", n: true },
+            { l: "× σ(W_g x), elementwise", s: "24 × 128 gate", n: true, c: "changed" },
+            { l: "Output projection", s: "3072 → 2304", c: "changed" },
+            { l: "Short conv", s: "kernel 4, ÷√5, FP32", n: true },
+          ],
+          merge: { l: "add to block partial sum", s: "new block every 6 layers", n: true },
+        },
+        {
+          title: "MoE (all layers)",
+          steps: [
+            { l: "AttnRes mix", s: "own query", n: true },
+            { l: "Message gate (passes 2–3)", s: "own message and gate", n: true, c: "new" },
+            { l: "RMSNorm", s: "learned gain" },
+            { l: "Sigmoid router (FP32)", s: "bias picks top-8 of 128", n: true, c: "changed" },
+            { l: "8 of 128 experts", s: "softcapped SwiGLU, 1152 wide", n: true, c: "changed" },
+            { l: "Weighted sum (FP32)", s: "renormalized × 8, no shared", n: true },
+            { l: "Short conv", s: "kernel 4, ÷√5, FP32", n: true },
+          ],
+          merge: { l: "add to block partial sum", n: true },
+        },
+      ],
+    },
+    outputs: [
+      { l: "AttnRes over all blocks → RMSNorm", n: true },
+      { row: [
+        { l: "LM head", s: "untied, tanh softcap 30", n: true },
+        { l: "Block drafter", s: "3 layers, 8 tokens per step", n: true, c: "changed" },
       ] },
     ],
   },
@@ -9170,6 +9696,7 @@ window.STACKS = {
   const primarySource = (m) => {
     const kinds = new Set(m.docs.map((d) => d.kind));
     if (kinds.has("R")) return { s: "R", t: "Technical report" };
+    if (!m.docs.some((d) => /model card/i.test(d.label))) return { s: "B", t: "Official blog (no report or model card)" };
     return { s: "B", t: "Official blog + model card (no report yet)" };
   };
   const refsLine = (m, key) => {
@@ -9285,6 +9812,7 @@ window.STACKS = {
   function strip(m, maxDepth) {
     const L = window.LAYER_KINDS;
     const n = m.layers.length;
+    if (!n) return `<p class="strip-none">Layer count not published.</p>`;
     const cells = m.layers
       .map((l, i) => {
         const a = l.mixer ? L[l.mixer].label : "no token mixer";
@@ -9297,6 +9825,7 @@ window.STACKS = {
       <div class="strip-axis" style="--w:${w}"><span>layer 0</span><span>${n - 1}</span></div>`;
   }
   function layerSummary(m) {
+    if (!m.layers.length) return "Layer count not published";
     const c = (p) => m.layers.filter(p).length;
     const parts = [];
     const add = (n, label) => n && parts.push(`${n} ${label}`);
@@ -9781,9 +10310,9 @@ window.STACKS = {
     for (const r of B.rows) {
       if (r.cat && r.cat !== group) { group = r.cat; html += `<tr class="group"><th colspan="${B.cols.length + 2}" scope="colgroup">${esc(group)}</th></tr>`; }
       const nums = r.v.filter((v) => typeof v === "number");
-      const best = nums.length > 1 ? Math.max(...nums) : null;
+      const best = nums.length > 1 ? (B.lower ? Math.min : Math.max)(...nums) : null;
       html += `<tr><th scope="row">${esc(r.k)}</th><td class="bset">${esc(r.set || "")}</td>${r.v.map((v, i) => typeof v !== "number" ? `<td><span class="nc">—</span></td>`
-        : `<td><div class="score${v === best ? " best" : ""}"><span class="sv">${v}${(r.fromOwn || []).includes(i) ? "†" : ""}</span><span class="sbar"><span style="width:${Math.min(100, Math.max(v, 0.5)).toFixed(2)}%"></span></span></div></td>`).join("")}</tr>`;
+        : `<td><div class="score${v === best ? " best" : ""}"><span class="sv">${B.digits != null ? v.toFixed(B.digits) : v}${(r.fromOwn || []).includes(i) ? "†" : ""}</span>${B.bars === false ? "" : `<span class="sbar"><span style="width:${Math.min(100, Math.max(v, 0.5)).toFixed(2)}%"></span></span>`}</div></td>`).join("")}</tr>`;
     }
     return `<table class="grid bench"><thead><tr><th scope="col">Benchmark</th><th scope="col">Setting</th>${B.cols.map((c, i) => `<th scope="col">${esc(c)}${B.sizes ? `<span class="bsize">${esc(B.sizes[i])}</span>` : ""}</th>`).join("")}</tr></thead><tbody>${html}</tbody></table>
       <p class="chart-note pad">${esc(B.t)}${src(B.s)}</p>`;
@@ -9821,21 +10350,22 @@ window.STACKS = {
   const bigNums = (m) => `<div class="bignums">
       <div class="bignum"><span class="n">${esc(m.params.total)}</span><span class="l">Total params</span></div>
       <div class="bignum"><span class="n">${esc(m.params.active)}</span><span class="l">Active</span></div>
-      <div class="bignum"><span class="n">${m.layers.length}</span><span class="l">Layers</span></div>
+      <div class="bignum"><span class="n">${m.layers.length || "n/d"}</span><span class="l">Layers</span></div>
       <div class="bignum"><span class="n">${esc(m.contextShort.split(" ")[0])}</span><span class="l">Context</span></div>
     </div>`;
 
   /* ---------- Views ---------- */
   function viewOne(m) {
-    const maxDepth = m.layers.length;
+    const maxDepth = m.layers.length || 1;
+    const noLayers = !m.layers.length;
     return [
       sec("sec-overview", esc(m.name), "", `<div class="panel pad hero">
           <div class="hero-main"><p class="org">${esc(m.org)}</p>${bigNums(m)}<p class="tagline">${esc(m.tagline)}</p></div>
           <div class="hero-side">${heroFacts(m)}</div>
         </div>${keyRefs(m)}`),
-      sec("sec-architecture", "Architecture", `Each column of the strip is one layer${m.layers.some((l) => l.mixer === "attn") ? "" : " from config.json"}: token mixer on top, FFN below. Hover a cell for its index.`,
+      sec("sec-architecture", "Architecture", noLayers ? "The layer count and widths are not published, so this section shows the published design and the spec sheet only." : `Each column of the strip is one layer${m.layers.some((l) => l.mixer === "attn") ? "" : " from config.json"}: token mixer on top, FFN below. Hover a cell for its index.`,
         `${refsLine(m, "arch")}${window.STACKS && window.STACKS[m.id] ? `<h3 class="mini first">Layer stack</h3><div class="panel pad">${stackFigure(m)}</div><h3 class="mini">One layer</h3>` : window.DIAGRAMS[m.id] ? `<h3 class="mini first">Block diagram</h3>` : ""}${window.DIAGRAMS[m.id] ? `<div class="panel pad">${diagramFigure(m)}</div>` : ""}
-         <h3 class="mini${window.DIAGRAMS[m.id] ? "" : " first"}">Layer layout</h3><div class="panel pad">${layerLegend([m])}${strip(m, maxDepth)}<p class="strip-note">${esc(m.layersNote)}</p></div>
+         <h3 class="mini${window.DIAGRAMS[m.id] ? "" : " first"}">Layer layout</h3><div class="panel pad">${noLayers ? "" : layerLegend([m])}${strip(m, maxDepth)}<p class="strip-note">${esc(m.layersNote)}</p></div>
          <div class="arch-grid">
            <div class="arch-main"><h3 class="mini">Spec sheet</h3>${specTable([m])}</div>
            <div class="arch-side">${kvCard(m)}${paramBlock(m)}
@@ -9896,7 +10426,7 @@ window.STACKS = {
     if (key === "date") return m.glance.date;
     if (key === "total") return parseParams(m.params.total);
     if (key === "active") return parseParams(m.params.active);
-    if (key === "layers") return m.layers.length;
+    if (key === "layers") return m.layers.length || -1;
     if (key === "kv") return m.kv ? kvFor(m, Math.min(1048576, ctxMax(m))).total : -1;
     if (key === "name") return m.name.toLowerCase();
     return 0;
@@ -9949,7 +10479,7 @@ window.STACKS = {
           <th scope="row"><a class="gname" href="${esc(hrefFor(m))}" data-open="${m.id}">${esc(m.name)}</a><span class="glab">${esc(m.org)}</span></th>
           <td class="num">${esc(m.glance.date)}</td>
           <td class="pcell">${paramsBar(m)}</td>
-          <td class="num">${m.layers.length}</td>
+          <td class="num">${m.layers.length || "n/d"}</td>
           <td><span class="gchip">${esc(m.glance.attn)}</span></td>
           <td><span class="gchip ghost">${esc(m.glance.moe)}</span></td>
           <td class="num">${esc(m.contextShort.split(" ")[0])}</td>
@@ -9971,7 +10501,7 @@ window.STACKS = {
     const maxDepth = Math.max(...MODELS.map((m) => m.layers.length));
     return `<div class="panel pad fp">${layerLegend()}${tiered(MODELS).map((g) => `<h3 class="tier-h">${tierHead(g)}</h3>${g.models.map(
       (m) => `<div class="fp-row" data-open="${m.id}">
-        <div class="fp-label"><a class="gname" href="${esc(hrefFor(m))}" data-open="${m.id}">${esc(shortName(m))}</a><span class="glab">${m.layers.length} layers · ${esc(m.glance.attn)}</span></div>
+        <div class="fp-label"><a class="gname" href="${esc(hrefFor(m))}" data-open="${m.id}">${esc(shortName(m))}</a><span class="glab">${m.layers.length ? `${m.layers.length} layers` : "layers n/d"} · ${esc(m.glance.attn)}</span></div>
         <div class="fp-strip">${strip(m, maxDepth)}</div>
         <p class="fp-sig">${esc(m.glance.sig)}</p>
       </div>`
@@ -10019,7 +10549,7 @@ window.STACKS = {
           <div class="hero-text">
             <h1>Frontier LLM Catalogue</h1>
             <p class="lede">The current open-weight models, read down to the config file: layer layouts, attention and routing, training stages and data, RL methods, training tricks and benchmarks. Each fact carries a mark for its source, and the lab's technical report is used first.</p>
-            <p class="edition"><span><b>${MODELS.length}</b> models</span><span><b>${labs}</b> labs</span><span><b>${reports}</b> with a technical report</span><span><b>${window.BENCHMARKS.length}</b> benchmarks</span><span><b>${factCount}</b> sourced facts</span><span>Compiled 12 Nov 2026</span></p>
+            <p class="edition"><span><b>${MODELS.length}</b> models</span><span><b>${labs}</b> labs</span><span><b>${reports}</b> with a technical report</span><span><b>${window.BENCHMARKS.length}</b> benchmarks</span><span><b>${factCount}</b> sourced facts</span><span>Compiled 21 Nov 2026</span></p>
             <div class="hero-cta">
               <label class="sr-only" for="hero-pick">Open a model</label>
               <select id="hero-pick" class="pick-select big"><option value="" selected disabled>Open a model…</option>${modelOptions(null, null)}</select>

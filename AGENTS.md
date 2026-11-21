@@ -37,6 +37,7 @@ Rules:
 - When layers play different roles across the network (for example DeepSeek-V4.1-Flash: encoder vs decoder, CSA2 Full / Reindex / Reuse, Engram layers), add a whole-network entry to `window.STACKS` in `data/diagrams.js`. Derive each layer's role from config.json fields, not by hand. The page then shows a "Layer stack" figure above the one-layer diagram.
 - Layer layouts come from tier 3 code or config (`layer_types`, `layers_block_type`, or the reference code). The `layersNote` names the field used.
 - When a model is out before its config.json (as Inkling 2 Small was for its first week, served on Tinker with weights pending), use the `attn` layer kind for attention whose local/global split is unpublished, set `kv: null` (the page then leaves the model out of the memory charts and says so) and leave out the block diagram until the model code is published. Facts backed out of indirect tier 3 code (such as the tinker-cookbook LoRA parameter table) are tagged `C+D`, and the note shows the arithmetic.
+- A closed-weights model (such as Qwen4-Max, API only) gets a full listing when its architecture belongs to a family on the page. Say "API only" in `license`, use `layers: []` when the layer count is unpublished (the page then shows "n/d" and skips the layer strip), set `kv: null`, and write "Not published" for unknown specs. Mechanism detail taken from the family's open code is tagged `C` and the text says it is the family code, not the model's own config.
 
 ## Workflow
 

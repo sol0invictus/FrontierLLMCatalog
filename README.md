@@ -2,7 +2,7 @@
 
 A standalone static site that compares frontier open-weight LLMs at config-file depth: layer layout, attention pattern, MoE routing, token budgets per training stage, data mixes, RL methods and benchmarks with their evaluation settings.
 
-Models covered (35): Muse Spark Open and Muse Glimmer 30B (Meta), Inkling, Inkling-Small and Inkling 2 Small (Thinking Machines Lab), DeepSeek-V4.1-Flash, DeepSeek-V4-Pro and DeepSeek-V4-Flash, Reflection Beam 1.0, Nemotron 3.5 Super, Nemotron 3.5 Lightning and Nemotron 3 Ultra (NVIDIA), Kimi K3 and Kimi K3.1 Pro (Moonshot AI), GLM-5.3 and GLM-5.3-Flash (Z.ai), MiMo-V2.6-Pro and MiMo-V2.6-Flash (Xiaomi), Qwen3.8-Max, Qwen3.8-Flash-Next and Qwen3.8-27B (Alibaba), MiniMax M3 and M3.1-Flash, Step 5 Preview (StepFun), Hy4-preview (Tencent), Motif 3 (Motif Technologies), Laguna S 2.1 (Poolside), LFM2.5-8B-A1B and LFM3-1.7B (Liquid AI), Gemma 4 31B (Google DeepMind), gpt-oss-120b (OpenAI), Olmo 3 32B Think (Ai2), Ripple-65B Preview (Ricursive Intelligence), SmolLM3-3B (Hugging Face) and Mistral Large 4 (Mistral AI).
+Models covered (37): Muse Spark Open and Muse Glimmer 30B (Meta), Inkling, Inkling-Small, Inkling 2 Small and Inkling 2 Mini (Thinking Machines Lab), DeepSeek-V4.1-Flash, DeepSeek-V4-Pro and DeepSeek-V4-Flash, Reflection Beam 1.0, Nemotron 3.5 Super, Nemotron 3.5 Lightning and Nemotron 3 Ultra (NVIDIA), Kimi K3 and Kimi K3.1 Pro (Moonshot AI), GLM-5.3 and GLM-5.3-Flash (Z.ai), MiMo-V2.6-Pro and MiMo-V2.6-Flash (Xiaomi), Qwen4-Max (API only, no weights yet), Qwen3.8-Max, Qwen3.8-Flash-Next and Qwen3.8-27B (Alibaba), MiniMax M3 and M3.1-Flash, Step 5 Preview (StepFun), Hy4-preview (Tencent), Motif 3 (Motif Technologies), Laguna S 2.1 (Poolside), LFM2.5-8B-A1B and LFM3-1.7B (Liquid AI), Gemma 4 31B (Google DeepMind), gpt-oss-120b (OpenAI), Olmo 3 32B Think (Ai2), Ripple-65B Preview (Ricursive Intelligence), SmolLM3-3B (Hugging Face) and Mistral Large 4 (Mistral AI).
 
 ## Views
 
@@ -12,7 +12,7 @@ Models covered (35): Muse Spark Open and Muse Glimmer 30B (Meta), Inkling, Inkli
 
 Old hash links (`#model-beam`, `#compare-muse-beam`) still open the right view and switch to the path. Inside the Claude artifact or a `file://` page, where the path can't change, the same routes go in the hash (`#model-<slug>`).
 
-Model ids: `muse`, `glimmer`, `inkling`, `inklingsm`, `dsv41`, `dsv4pro`, `dsv4flash`, `beam`, `super`, `lightning`, `ultra3`, `kimik3`, `kimik31`, `glm53`, `glm53f`, `mimo26`, `mimo26f`, `qwen38`, `qwen38fn`, `qwen3827`, `minimaxm3`, `minimaxm31f`, `step5`, `hy4`, `motif3`, `laguna`, `lfm25`, `lfm3`, `gemma4`, `gptoss`, `olmo3`, `ripple`, `smollm3`, `ml4`. Pick the model from the dropdown (grouped by lab).
+Model ids: `muse`, `glimmer`, `inkling`, `inklingsm`, `inkling2s`, `inkling2m`, `dsv41`, `dsv4pro`, `dsv4flash`, `beam`, `super`, `lightning`, `ultra3`, `kimik3`, `kimik31`, `glm53`, `glm53f`, `mimo26`, `mimo26f`, `qwen4max`, `qwen38`, `qwen38fn`, `qwen3827`, `minimaxm3`, `minimaxm31f`, `step5`, `hy4`, `motif3`, `laguna`, `lfm25`, `lfm3`, `gemma4`, `gptoss`, `olmo3`, `ripple`, `smollm3`, `ml4`. Pick the model from the dropdown (grouped by lab).
 
 ## Layout
 

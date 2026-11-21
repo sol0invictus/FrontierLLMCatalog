@@ -84,6 +84,7 @@
   const primarySource = (m) => {
     const kinds = new Set(m.docs.map((d) => d.kind));
     if (kinds.has("R")) return { s: "R", t: "Technical report" };
+    if (!m.docs.some((d) => /model card/i.test(d.label))) return { s: "B", t: "Official blog (no report or model card)" };
     return { s: "B", t: "Official blog + model card (no report yet)" };
   };
   const refsLine = (m, key) => {
@@ -199,6 +200,7 @@
   function strip(m, maxDepth) {
     const L = window.LAYER_KINDS;
     const n = m.layers.length;
+    if (!n) return `<p class="strip-none">Layer count not published.</p>`;
     const cells = m.layers
       .map((l, i) => {
         const a = l.mixer ? L[l.mixer].label : "no token mixer";
@@ -211,6 +213,7 @@
       <div class="strip-axis" style="--w:${w}"><span>layer 0</span><span>${n - 1}</span></div>`;
   }
   function layerSummary(m) {
+    if (!m.layers.length) return "Layer count not published";
     const c = (p) => m.layers.filter(p).length;
     const parts = [];
     const add = (n, label) => n && parts.push(`${n} ${label}`);
@@ -695,9 +698,9 @@
     for (const r of B.rows) {
       if (r.cat && r.cat !== group) { group = r.cat; html += `<tr class="group"><th colspan="${B.cols.length + 2}" scope="colgroup">${esc(group)}</th></tr>`; }
       const nums = r.v.filter((v) => typeof v === "number");
-      const best = nums.length > 1 ? Math.max(...nums) : null;
+      const best = nums.length > 1 ? (B.lower ? Math.min : Math.max)(...nums) : null;
       html += `<tr><th scope="row">${esc(r.k)}</th><td class="bset">${esc(r.set || "")}</td>${r.v.map((v, i) => typeof v !== "number" ? `<td><span class="nc">—</span></td>`
-        : `<td><div class="score${v === best ? " best" : ""}"><span class="sv">${v}${(r.fromOwn || []).includes(i) ? "†" : ""}</span><span class="sbar"><span style="width:${Math.min(100, Math.max(v, 0.5)).toFixed(2)}%"></span></span></div></td>`).join("")}</tr>`;
+        : `<td><div class="score${v === best ? " best" : ""}"><span class="sv">${B.digits != null ? v.toFixed(B.digits) : v}${(r.fromOwn || []).includes(i) ? "†" : ""}</span>${B.bars === false ? "" : `<span class="sbar"><span style="width:${Math.min(100, Math.max(v, 0.5)).toFixed(2)}%"></span></span>`}</div></td>`).join("")}</tr>`;
     }
     return `<table class="grid bench"><thead><tr><th scope="col">Benchmark</th><th scope="col">Setting</th>${B.cols.map((c, i) => `<th scope="col">${esc(c)}${B.sizes ? `<span class="bsize">${esc(B.sizes[i])}</span>` : ""}</th>`).join("")}</tr></thead><tbody>${html}</tbody></table>
       <p class="chart-note pad">${esc(B.t)}${src(B.s)}</p>`;
@@ -735,21 +738,22 @@
   const bigNums = (m) => `<div class="bignums">
       <div class="bignum"><span class="n">${esc(m.params.total)}</span><span class="l">Total params</span></div>
       <div class="bignum"><span class="n">${esc(m.params.active)}</span><span class="l">Active</span></div>
-      <div class="bignum"><span class="n">${m.layers.length}</span><span class="l">Layers</span></div>
+      <div class="bignum"><span class="n">${m.layers.length || "n/d"}</span><span class="l">Layers</span></div>
       <div class="bignum"><span class="n">${esc(m.contextShort.split(" ")[0])}</span><span class="l">Context</span></div>
     </div>`;
 
   /* ---------- Views ---------- */
   function viewOne(m) {
-    const maxDepth = m.layers.length;
+    const maxDepth = m.layers.length || 1;
+    const noLayers = !m.layers.length;
     return [
       sec("sec-overview", esc(m.name), "", `<div class="panel pad hero">
           <div class="hero-main"><p class="org">${esc(m.org)}</p>${bigNums(m)}<p class="tagline">${esc(m.tagline)}</p></div>
           <div class="hero-side">${heroFacts(m)}</div>
         </div>${keyRefs(m)}`),
-      sec("sec-architecture", "Architecture", `Each column of the strip is one layer${m.layers.some((l) => l.mixer === "attn") ? "" : " from config.json"}: token mixer on top, FFN below. Hover a cell for its index.`,
+      sec("sec-architecture", "Architecture", noLayers ? "The layer count and widths are not published, so this section shows the published design and the spec sheet only." : `Each column of the strip is one layer${m.layers.some((l) => l.mixer === "attn") ? "" : " from config.json"}: token mixer on top, FFN below. Hover a cell for its index.`,
         `${refsLine(m, "arch")}${window.STACKS && window.STACKS[m.id] ? `<h3 class="mini first">Layer stack</h3><div class="panel pad">${stackFigure(m)}</div><h3 class="mini">One layer</h3>` : window.DIAGRAMS[m.id] ? `<h3 class="mini first">Block diagram</h3>` : ""}${window.DIAGRAMS[m.id] ? `<div class="panel pad">${diagramFigure(m)}</div>` : ""}
-         <h3 class="mini${window.DIAGRAMS[m.id] ? "" : " first"}">Layer layout</h3><div class="panel pad">${layerLegend([m])}${strip(m, maxDepth)}<p class="strip-note">${esc(m.layersNote)}</p></div>
+         <h3 class="mini${window.DIAGRAMS[m.id] ? "" : " first"}">Layer layout</h3><div class="panel pad">${noLayers ? "" : layerLegend([m])}${strip(m, maxDepth)}<p class="strip-note">${esc(m.layersNote)}</p></div>
          <div class="arch-grid">
            <div class="arch-main"><h3 class="mini">Spec sheet</h3>${specTable([m])}</div>
            <div class="arch-side">${kvCard(m)}${paramBlock(m)}
@@ -810,7 +814,7 @@
     if (key === "date") return m.glance.date;
     if (key === "total") return parseParams(m.params.total);
     if (key === "active") return parseParams(m.params.active);
-    if (key === "layers") return m.layers.length;
+    if (key === "layers") return m.layers.length || -1;
     if (key === "kv") return m.kv ? kvFor(m, Math.min(1048576, ctxMax(m))).total : -1;
     if (key === "name") return m.name.toLowerCase();
     return 0;
@@ -863,7 +867,7 @@
           <th scope="row"><a class="gname" href="${esc(hrefFor(m))}" data-open="${m.id}">${esc(m.name)}</a><span class="glab">${esc(m.org)}</span></th>
           <td class="num">${esc(m.glance.date)}</td>
           <td class="pcell">${paramsBar(m)}</td>
-          <td class="num">${m.layers.length}</td>
+          <td class="num">${m.layers.length || "n/d"}</td>
           <td><span class="gchip">${esc(m.glance.attn)}</span></td>
           <td><span class="gchip ghost">${esc(m.glance.moe)}</span></td>
           <td class="num">${esc(m.contextShort.split(" ")[0])}</td>
@@ -885,7 +889,7 @@
     const maxDepth = Math.max(...MODELS.map((m) => m.layers.length));
     return `<div class="panel pad fp">${layerLegend()}${tiered(MODELS).map((g) => `<h3 class="tier-h">${tierHead(g)}</h3>${g.models.map(
       (m) => `<div class="fp-row" data-open="${m.id}">
-        <div class="fp-label"><a class="gname" href="${esc(hrefFor(m))}" data-open="${m.id}">${esc(shortName(m))}</a><span class="glab">${m.layers.length} layers · ${esc(m.glance.attn)}</span></div>
+        <div class="fp-label"><a class="gname" href="${esc(hrefFor(m))}" data-open="${m.id}">${esc(shortName(m))}</a><span class="glab">${m.layers.length ? `${m.layers.length} layers` : "layers n/d"} · ${esc(m.glance.attn)}</span></div>
         <div class="fp-strip">${strip(m, maxDepth)}</div>
         <p class="fp-sig">${esc(m.glance.sig)}</p>
       </div>`
@@ -933,7 +937,7 @@
           <div class="hero-text">
             <h1>Frontier LLM Catalogue</h1>
             <p class="lede">The current open-weight models, read down to the config file: layer layouts, attention and routing, training stages and data, RL methods, training tricks and benchmarks. Each fact carries a mark for its source, and the lab's technical report is used first.</p>
-            <p class="edition"><span><b>${MODELS.length}</b> models</span><span><b>${labs}</b> labs</span><span><b>${reports}</b> with a technical report</span><span><b>${window.BENCHMARKS.length}</b> benchmarks</span><span><b>${factCount}</b> sourced facts</span><span>Compiled 12 Nov 2026</span></p>
+            <p class="edition"><span><b>${MODELS.length}</b> models</span><span><b>${labs}</b> labs</span><span><b>${reports}</b> with a technical report</span><span><b>${window.BENCHMARKS.length}</b> benchmarks</span><span><b>${factCount}</b> sourced facts</span><span>Compiled 21 Nov 2026</span></p>
             <div class="hero-cta">
               <label class="sr-only" for="hero-pick">Open a model</label>
               <select id="hero-pick" class="pick-select big"><option value="" selected disabled>Open a model…</option>${modelOptions(null, null)}</select>

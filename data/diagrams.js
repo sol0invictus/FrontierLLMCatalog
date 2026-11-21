@@ -914,6 +914,70 @@ window.DIAGRAMS = {
     ],
   },
 
+  inkling2m: {
+    s: "B+C",
+    base: "Inkling 2 Small",
+    caption: "One Inkling 2 Mini layer. 24 layers are stored (20 sliding-window, 4 global); layers 6–17 run three times, so a token makes 48 layer visits. The layer itself is Inkling 2 Small's at half the width. What is new is the loop: passes 2 and 3 restart from layer 5's output, and each looped layer gates a message from the previous pass into its Q, K, V and MoE inputs. Orange tags mark steps that are new or changed from Inkling 2 Small. Built from modular_inkling2_loop.py and config.json; the loop schedule is also in the launch post.",
+    inputs: [
+      { row: [
+        { l: "Token embedding", s: "201,024 × 2304", c: "changed" },
+        { l: "PE ViT", s: "23 layers × 1024, 20 px patches", n: true },
+      ] },
+      { row: [
+        { l: "RMSNorm", s: "learned gain", n: true },
+        { l: "2×2 merge → MLP", s: "4096 → 2304", c: "changed" },
+      ] },
+      { l: "Loop schedule", s: "L0–5 once → L6–17 × 3 → L18–23 once", n: true, c: "new" },
+    ],
+    block: {
+      title: "Decoder layer",
+      repeat: "× 24 (48 visits)",
+      stream: "AttnRes: 6-layer block sums",
+      note: "Passes 2–3 restart from L5's state and add the messages; each pass keeps its own KV and conv cache",
+      branches: [
+        {
+          title: "Attention (20 sliding-window + 4 global)",
+          steps: [
+            { l: "AttnRes mix", s: "softmax(w · RMSNorm(blocks)), FP32", n: true },
+            { l: "Message gate (passes 2–3)", s: "(1−tanh f)·h + tanh(m)·msg, rank 64", n: true, c: "new" },
+            { l: "RMSNorm", s: "learned gain; global: one per Q, K, V" },
+            { row: [
+              { l: "Q projection", s: "24 heads × 128", c: "changed" },
+              { l: "K, V + short conv", s: "8 KV heads, k=4", n: true },
+              { l: "Relative coeffs", s: "16 per head, clip 8", n: true },
+            ] },
+            { l: "Q, K L2 clip 22.6; V RMSNorm", s: "replaces QK-norm", n: true },
+            { l: "Attention + rel. bias + sink", s: "1/√d; window 1024, or full", n: true },
+            { l: "× σ(W_g x), elementwise", s: "24 × 128 gate", n: true, c: "changed" },
+            { l: "Output projection", s: "3072 → 2304", c: "changed" },
+            { l: "Short conv", s: "kernel 4, ÷√5, FP32", n: true },
+          ],
+          merge: { l: "add to block partial sum", s: "new block every 6 layers", n: true },
+        },
+        {
+          title: "MoE (all layers)",
+          steps: [
+            { l: "AttnRes mix", s: "own query", n: true },
+            { l: "Message gate (passes 2–3)", s: "own message and gate", n: true, c: "new" },
+            { l: "RMSNorm", s: "learned gain" },
+            { l: "Sigmoid router (FP32)", s: "bias picks top-8 of 128", n: true, c: "changed" },
+            { l: "8 of 128 experts", s: "softcapped SwiGLU, 1152 wide", n: true, c: "changed" },
+            { l: "Weighted sum (FP32)", s: "renormalized × 8, no shared", n: true },
+            { l: "Short conv", s: "kernel 4, ÷√5, FP32", n: true },
+          ],
+          merge: { l: "add to block partial sum", n: true },
+        },
+      ],
+    },
+    outputs: [
+      { l: "AttnRes over all blocks → RMSNorm", n: true },
+      { row: [
+        { l: "LM head", s: "untied, tanh softcap 30", n: true },
+        { l: "Block drafter", s: "3 layers, 8 tokens per step", n: true, c: "changed" },
+      ] },
+    ],
+  },
+
   dsv4pro: {
     s: "R+C",
     caption: "One DeepSeek-V4-Pro layer, repeated 61 times on four mHC residual streams. Each layer attends over its own 128-token window plus either CSA entries (4 tokens each, top-1024 picked by an indexer) or HCA entries (128 tokens each, all of them). One 512-dim vector serves as both key and value.",
