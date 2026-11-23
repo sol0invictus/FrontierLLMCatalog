@@ -39,7 +39,7 @@ Then open http://localhost:8765. Opening `dist/index.html` straight from disk al
 
 ## Deploy (Cloudflare Pages)
 
-The site is one self-contained file, `dist/index.html`, with no external requests. It is committed, so Pages needs no build step. Model pages are paths with no file behind them (`/ripple-65b-preview`). `scripts/build.py` writes `dist/_redirects`, which serves `index.html` at each model's slug and id and at `/compare/*` as 200 rewrites. Cloudflare Pages would fall back to `index.html` on its own, but a project created through Workers & Pages → Connect to Git is now a Worker with static assets, which returns a bare 404 for those paths. The `_redirects` file works on both. Commit it with `dist/index.html`, and don't add a top-level `404.html`.
+The site is one self-contained file, `dist/index.html`, with no external requests. It is committed, so Pages needs no build step. Model pages are paths with no file behind them (`/ripple-65b-preview`). `scripts/build.py` writes `dist/_redirects`, which serves `index.html` at each model's slug and id and at `/compare/*` as 200 rewrites. The live site is a Cloudflare Worker (`frontierllmcatalog`, deployed by Workers Builds on each push), not a Pages project. `wrangler.jsonc` points it at `dist/` and turns on `not_found_handling: "single-page-application"`. Without that file the Worker served the repo root and returned a bare 404 for model paths. `_redirects` covers the same paths on Pages. Commit it with `dist/index.html`, and don't add a top-level `404.html`.
 
 1. Push the repo to GitHub.
 2. In Cloudflare, go to Workers & Pages → Create → Pages → Connect to Git, and pick the repo.
