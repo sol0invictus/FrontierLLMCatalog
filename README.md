@@ -39,14 +39,14 @@ Then open http://localhost:8765. Opening `dist/index.html` straight from disk al
 
 ## Deploy (Cloudflare Pages)
 
-The site is one self-contained file, `dist/index.html`, with no external requests. It is committed, so Pages needs no build step. Model pages are paths with no file behind them (`/ripple-65b-preview`). Pages serves `index.html` for those as long as `dist/` has no top-level `404.html`, so don't add one.
+The site is one self-contained file, `dist/index.html`, with no external requests. It is committed, so Pages needs no build step. Model pages are paths with no file behind them (`/ripple-65b-preview`). `scripts/build.py` writes `dist/_redirects`, which serves `index.html` at each model's slug and id and at `/compare/*` as 200 rewrites. Cloudflare Pages would fall back to `index.html` on its own, but a project created through Workers & Pages → Connect to Git is now a Worker with static assets, which returns a bare 404 for those paths. The `_redirects` file works on both. Commit it with `dist/index.html`, and don't add a top-level `404.html`.
 
 1. Push the repo to GitHub.
 2. In Cloudflare, go to Workers & Pages → Create → Pages → Connect to Git, and pick the repo.
 3. Set **Framework preset** to None, leave **Build command** empty, and set **Build output directory** to `dist`.
 4. After the first deploy, open the project's Custom domains tab and add the subdomain you want (for example `llms.sunnyguha.com`). Cloudflare adds the DNS record when the zone is on the same account.
 
-Run `python3 scripts/build.py` and commit `dist/index.html` with every data change; Pages redeploys on each push. Alternatively set the build command to `python3 scripts/build.py` so Pages rebuilds it itself.
+Run `python3 scripts/build.py` and commit `dist/index.html` and `dist/_redirects` with every data change; Pages redeploys on each push. Alternatively set the build command to `python3 scripts/build.py` so Pages rebuilds it itself.
 
 ## Add a model
 

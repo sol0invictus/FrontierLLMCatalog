@@ -45,4 +45,4 @@ Rules:
 2. Run `python3 scripts/build.py`.
 3. Check the page in a browser at desktop and phone widths: `python3 scripts/serve.py` serves `dist/` at http://localhost:8765 and handles model paths.
 4. Republish `build/artifact.html` to the existing artifact URL in the memory or README.
-5. Commit the source and `dist/index.html` together. `dist/` is the folder Cloudflare Pages serves.
+5. Commit the source, `dist/index.html` and `dist/_redirects` together. `dist/` is the folder Cloudflare Pages serves.
