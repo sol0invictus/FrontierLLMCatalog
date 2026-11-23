@@ -39,14 +39,14 @@ Then open http://localhost:8765. Opening `dist/index.html` straight from disk al
 
 ## Deploy (Cloudflare Pages)
 
-The site is one self-contained file, `dist/index.html`, with no external requests. It is committed, so Pages needs no build step. Model pages are paths with no file behind them (`/ripple-65b-preview`). `scripts/build.py` writes `dist/_redirects`, which serves `index.html` at each model's slug and id and at `/compare/*` as 200 rewrites. The live site is a Cloudflare Worker (`frontierllmcatalog`, deployed by Workers Builds on each push), not a Pages project. `wrangler.jsonc` points it at `dist/` and turns on `not_found_handling: "single-page-application"`. Without that file the Worker served the repo root and returned a bare 404 for model paths. `_redirects` covers the same paths on Pages. Commit it with `dist/index.html`, and don't add a top-level `404.html`.
+The site is one self-contained file, `dist/index.html`, with no external requests. It is committed, so Pages needs no build step. Model pages are paths with no file behind them (`/ripple-65b-preview`). The live site is a Cloudflare Worker (`frontierllmcatalog`, deployed by Workers Builds on each push), not a Pages project. `wrangler.jsonc` points it at `dist/` and sets `not_found_handling: "single-page-application"`, so those paths get `index.html`. Without that file the Worker served the repo root and returned a bare 404 for model paths. Don't add `dist/_redirects`: the Workers API rejects 200 rewrites to `/index.html` and the deploy fails. Don't add a top-level `404.html` either.
 
 1. Push the repo to GitHub.
 2. In Cloudflare, go to Workers & Pages → Create → Pages → Connect to Git, and pick the repo.
 3. Set **Framework preset** to None, leave **Build command** empty, and set **Build output directory** to `dist`.
 4. After the first deploy, open the project's Custom domains tab and add the subdomain you want (for example `llms.sunnyguha.com`). Cloudflare adds the DNS record when the zone is on the same account.
 
-Run `python3 scripts/build.py` and commit `dist/index.html` and `dist/_redirects` with every data change; Pages redeploys on each push. Alternatively set the build command to `python3 scripts/build.py` so Pages rebuilds it itself.
+Run `python3 scripts/build.py` and commit `dist/index.html` with every data change; Pages redeploys on each push. Alternatively set the build command to `python3 scripts/build.py` so Pages rebuilds it itself.
 
 ## Add a model
 
