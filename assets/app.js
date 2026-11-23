@@ -82,6 +82,7 @@
   const sec = (id, title, sub, body) =>
     `<section class="block wrap" id="${id}"><div class="sec-head"><h2>${title}</h2>${sub ? `<p class="sec-sub">${sub}</p>` : ""}</div>${body}</section>`;
   const primarySource = (m) => {
+    if (m.primary) return m.primary;
     const kinds = new Set(m.docs.map((d) => d.kind));
     if (kinds.has("R")) return { s: "R", t: "Technical report" };
     if (!m.docs.some((d) => /model card/i.test(d.label))) return { s: "B", t: "Official blog (no report or model card)" };
@@ -937,7 +938,7 @@
           <div class="hero-text">
             <h1>Frontier LLM Catalogue</h1>
             <p class="lede">The current open-weight models, read down to the config file: layer layouts, attention and routing, training stages and data, RL methods, training tricks and benchmarks. Each fact carries a mark for its source, and the lab's technical report is used first.</p>
-            <p class="edition"><span><b>${MODELS.length}</b> models</span><span><b>${labs}</b> labs</span><span><b>${reports}</b> with a technical report</span><span><b>${window.BENCHMARKS.length}</b> benchmarks</span><span><b>${factCount}</b> sourced facts</span><span>Compiled 21 Nov 2026</span></p>
+            <p class="edition"><span><b>${MODELS.length}</b> models</span><span><b>${labs}</b> labs</span><span><b>${reports}</b> with a technical report</span><span><b>${window.BENCHMARKS.length}</b> benchmarks</span><span><b>${factCount}</b> sourced facts</span><span>Compiled 23 Nov 2026</span></p>
             <div class="hero-cta">
               <label class="sr-only" for="hero-pick">Open a model</label>
               <select id="hero-pick" class="pick-select big"><option value="" selected disabled>Open a model…</option>${modelOptions(null, null)}</select>

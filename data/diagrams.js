@@ -499,6 +499,60 @@ window.DIAGRAMS = {
   },
 
 
+  glm54: {
+    s: "B+C",
+    base: "GLM-5.3",
+    caption: "One GLM-5.4 layer. 78 layers are stored, as in the GLM-5 base; layers 27–54 (1-based, as in the blog's figure) run twice with shared weights, so a token makes 106 layer visits. A damp gate blends each pass's output into the stream. In pass 2 the looped layers run no indexer and attend over pass 1's selected KV plus their own 128-token window, in one softmax. Orange tags mark what is new or changed from GLM-5.3. Built from the launch blog's figure; the layer internals come from GLM-5.3's config and the transformers glm_moe_dsa code, since GLM-5.4's code is not published.",
+    inputs: [
+      { row: [
+        { l: "Token embedding", s: "154,880 × 6144" },
+        { l: "24-layer ViT → projection", s: "added to the input embedding", n: true, c: "new" },
+      ] },
+      { l: "Loop schedule", s: "L1–26 once → L27–54 × 2 → L55–78 once", n: true, c: "new" },
+    ],
+    block: {
+      title: "Decoder layer",
+      repeat: "× 78 (106 visits)",
+      stream: "residual stream",
+      note: "After each pass of L27–54: damp gate x ← x + β(h − x), β = σ(Linear(RMSNorm x)), per token",
+      branches: [
+        {
+          title: "MLA + DeepSeek Sparse Attention",
+          steps: [
+            { l: "RMSNorm" },
+            { row: [
+              { l: "Q: 6144 → 2048 → 64 × 256", s: "pass 2: from pass-2 state" },
+              { l: "KV latent 512 + RoPE 64", s: "pass 1 cached; pass 2 window" },
+            ] },
+            { l: "Interleaved RoPE θ = 8M", s: "64 of 256 query dims", n: true },
+            { l: "Indexer: top-2,048 tokens", s: "pass 2 reuses pass 1's picks", n: true, c: "changed" },
+            { l: "Sparse attention, 64 × 256", s: "pass 2: + own 128-tok window, one softmax", n: true, c: "changed" },
+            { l: "Output projection", s: "64 × 256 → 6144" },
+          ],
+          merge: { l: "+ residual" },
+        },
+        {
+          title: "MoE (layers 4–78)",
+          steps: [
+            { l: "RMSNorm" },
+            { l: "Sigmoid router (FP32)", s: "+ bias → top-8 of 256" },
+            { row: [
+              { l: "8 SwiGLU experts", s: "6144 → 2048 → 6144" },
+              { l: "1 shared expert", s: "SwiGLU 2048" },
+            ] },
+            { l: "Weighted sum × 2.5", s: "weights renormalized over 8" },
+          ],
+          merge: { l: "+ residual" },
+        },
+      ],
+    },
+    outputs: [
+      { l: "Damp gates after pass 1 and pass 2", s: "x₁ = x₀ + β₁(h₁ − x₀); x₂ = x₁ + β₂(h₂ − x₁)", n: true, c: "new" },
+      { l: "Final RMSNorm" },
+      { l: "LM head", s: "MTP not stated", c: "changed" },
+    ],
+  },
+
   glm53: {
     s: "R+B+C",
     caption: "One GLM-5.3 layer, repeated 78 times (the same base as GLM-5.2). Every layer is MLA with DeepSeek Sparse Attention; only 21 layers run the lightning indexer, and the rest reuse the top-2,048 tokens it picked.",

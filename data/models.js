@@ -620,7 +620,7 @@ window.MODELS = [
       { t: "<b>48 layer visits from 24 layers.</b> Layers 0–5 run once, layers 6–17 three times with shared weights, and layers 18–23 once. Looping the middle 12 layers beat looping the last 12 on 27 of 28 evaluations.", s: "B+C" },
       { t: "<b>Each pass restarts and reads a message.</b> Passes 2 and 3 start again from the first block's output instead of continuing from the previous pass. Each looped layer gates in a message retrieved from the previous pass, through a gate that starts closed.", s: "B+C" },
       { t: "<b>Pruned, then healed.</b> The model started with 384 experts (top-8). In midtraining Thinking Machines kept the 128 most used in each layer, then trained on 1T tokens distilled from a larger internal Inkling to recover.", s: "B" },
-      { t: "<b>Loops help reasoning, not recall.</b> On the variable-loop sibling, going from 1 to 3 passes lifts MRCR v2 from 27.2% to 89.2% and DeepSWE from 0.7% to 47.4%, while SimpleQA Verified moves from 6.3% to 7.3%.", s: "C" },
+      { t: "<b>Loops help reasoning, not recall.</b> On the variable-loop sibling, going from 1 to 3 passes lifts MRCR v2 from 26.2% to 89.2%, ARC-AGI-2 from 0.8% to 22.1% and DeepSWE from 0.7% to 47.4%, while SimpleQA Verified moves from 6.3% to 7.3%.", s: "C" },
       { t: "<b>Shorter but legible reasoning.</b> At 5 passes the variable-loop model's GPQA reasoning was under half as long as at 1 pass (1,661 vs 3,703 tokens) with unchanged legibility. CoT controllability stayed at or below 0.1%.", s: "B" },
       { t: "<b>Runs on a laptop at its training precision.</b> About 20 GB in NVFP4 with MXFP8 in the last four layers, so it fits 32 GB Macs and a DGX Spark with no conversion loss.", s: "B" },
     ],
@@ -702,17 +702,27 @@ window.MODELS = [
           { k: "HLE, text only", v: [10.5, 20.0, 24.9, 25.4, 25.9], note: "Inkling 2 Mini 30.7" },
           { k: "Apex 2025", v: [3.1, 10.4, 19.8, 15.6, 18.8], note: "Inkling 2 Mini 34.4" },
           { k: "ComplexConstraints v1.1", v: [4.5, 26.0, 37.9, 39.6, 38.9], note: "Inkling 2 Mini 33.4" },
-          { k: "MRCR v2, 8-needle 256K–512K", v: [27.2, 65.2, 89.2, 93.4, 92.1], note: "Inkling 2 Mini 46.4" },
-          { k: "GraphWalks BFS 256K", v: [23.5, 56.0, 64.3, 64.3, 63.8], note: "Inkling 2 Mini 69.7" },
+          { k: "DeepSearchQA, with compaction", v: [58.5, 74.8, 78.9, 83.4, 83.0], note: "Inkling 2 Mini 85.3" },
+          { k: "Diligence Bench, Loop harness", v: [16.1, 22.2, 27.9, 29.4, 32.3], note: "Inkling 2 Mini 31.7 (48.6 with its best harness)" },
+          { k: "ARC-AGI-1, public", v: [29.5, 59.3, 71.5, 72.6, 75.3], note: "Inkling 2 Mini 90.5 here; its own card lists 84.5" },
+          { k: "ARC-AGI-2, public", v: [0.8, 12.2, 22.1, 20.3, 27.1], note: "Inkling 2 Mini 51.3 here; its own card lists 49.3" },
+          { k: "AA-LCR v1.1", v: [55.5, 73.5, 74.8, 75.5, 76.8], note: "Inkling 2 Mini 80.0" },
+          { k: "MRCR v2, 8-needle 256K–512K", v: [26.2, 65.2, 89.2, 93.4, 92.1], note: "Inkling 2 Mini 46.4. The card's first version gave 27.2 at 1 pass" },
+          { k: "MRCR v2, 8-needle 512K–1M", v: [20.6, 49.7, 72.3, 81.4, 79.9], note: "Inkling 2 Mini 37.7" },
+          { k: "GraphWalks BFS 256K", v: [21.1, 54.5, 63.2, 64.3, 64.9], note: "Inkling 2 Mini 69.7. Revised on 23 Nov from 23.5, 56.0, 64.3, 64.3, 63.8" },
+          { k: "GraphWalks BFS 1M", v: [5.7, 39.4, 52.1, 56.2, 57.8], note: "Inkling 2 Mini 50.0" },
           { k: "MathVision", v: [74.8, 84.9, 86.6, 87.8, 88.1], note: "Inkling 2 Mini 89.0" },
           { k: "BabyVision, no tools", v: [32.7, 44.9, 50.3, 50.3, 49.2], note: "Inkling 2 Mini 53.4" },
           { k: "SimpleQA Verified", v: [6.3, 6.5, 7.3, 6.8, 6.7], note: "Inkling 2 Mini 8.4" },
           { k: "AA-Omniscience accuracy", v: [15.5, 16.3, 18.4, 18.0, 17.4], note: "Inkling 2 Mini 21.3" },
           { k: "WorldVQA", v: [11.3, 13.0, 14.2, 14.3, 13.5], note: "Inkling 2 Mini 15.2" },
+          { k: "SimpleVQA", v: [39.0, 41.8, 42.4, 42.9, 41.3], note: "Inkling 2 Mini 45.4" },
+          { k: "Humanity's Sixth Sense", v: [22.4, 24.8, 25.5, 26.5, 27.0], note: "Inkling 2 Mini 23.8" },
           { k: "FORTRESS adversarial", v: [89.0, 90.4, 90.0, 89.9, 89.4], note: "Inkling 2 Mini 89.5" },
         ],
         notes: [
-          { t: "Most gains come by 3 passes, the count the model was mostly trained and post-trained at. Long-context retrieval, math and agentic coding gain the most; closed-book factual QA barely moves, which the blog reads as knowledge depending on total parameters rather than depth.", s: "B+C" },
+          { t: "Most gains come by 3 passes, the count the model was mostly trained and post-trained at. The launch post (revised 23 Nov) says long-context tasks (GraphWalks BFS, MRCR v2) gain the most, then math, abstract and visual reasoning (ARC-AGI, HLE-Diamond, Humanity's Sixth Sense), then long-horizon agentic tasks in simple harnesses (DeepSWE, BrowseComp, Diligence Bench). Closed-book factual QA barely moves (AA-Omniscience, SimpleQA Verified, SimpleVQA, WorldVQA), which the blog reads as knowledge depending on total parameters rather than depth.", s: "B+C" },
+          { t: "The card was updated on 23 Nov with 12 more rows and two corrected ones. Rows not shown: PMPP-Hard AUC 49.5, 315.3, 401.8, 437.2, 424.0 (Inkling 2 Mini 455.8); destructive actions, lower is better, 26.6%, 16.4%, 7.8%, 3.1%, 7.0% (Inkling 2 Mini 10.2%).", s: "C" },
           { t: "No-CoT time horizon on a Think Fast subset (answers forced without reasoning): 16 s at 1 pass, 26 s at 2, 37 s at 3, 42 s at 5 and 40 s at 10 passes, which is twice the most the model was trained with. Inkling 2 Mini scores 41 s. N-Hop Lookup, a pure serial-reasoning task, keeps improving out to 10 passes.", s: "B" },
           { t: "GPQA Diamond questions solved at every pass count: mean reasoning 3,703 tokens at 1 pass, 1,731 at 3 and 1,661 at 5, with unchanged words per sentence (8.9, 8.7, 8.7) and dictionary-word share (94.6%, 94.5%, 94.4%). Hedges such as \"wait\" fall from 9.7 to 3.6 per answer.", s: "B" },
           { t: "LinuxArena stealth rate against a weaker monitor that sees only tool calls: 1.0%, 2.5%, 4.0%, 2.8% and 5.0% at 1–5 passes, which the blog calls no clear trend. A helpful-only Inkling 2 Mini scored 3.9%; Qwen3.8-27B 20.5%.", s: "B" },
@@ -2599,6 +2609,174 @@ window.MODELS = [
       ],
       notes: [
         { t: "The blog does not say whether K3's MOPD consolidation or effort experts were reused. It describes one joint RL run.", s: "B" },
+      ],
+    },
+  },
+
+  /* ------------------------------------------------------------------ */
+  {
+    id: "glm54",
+    glance: {"date": "2026-11-23", "attn": "MLA + DSA sparse; pass 2 adds SWA 128", "moe": "256 → 8 + 1 shared", "tokens": "n/d", "report": "Blog", "sig": "Looped GLM-5: layers 27–54 run twice behind damp gates; pass 2 reuses pass 1's sparse KV and indexer picks"},
+    benchSource: { s: "B", t: "Z.ai has published no standard benchmark scores for GLM-5.4. The launch blog gives the 30B looping ablation (see Ablations) and the claim that GLM-5.4 reaches \"intelligence levels comparable to 2T-3T parameter models\". The developer docs add one head-to-head chart with no task set, judge or sample size stated (win / tie / loss): against GLM-5.3 51.1 / 25.7 / 23.1%, against Kimi K3.1 Pro 41.8 / 26.9 / 31.3%, against DeepSeek-V4.1-Flash-1017 36.6 / 30.2 / 33.2%. There is no model card and no Artificial Analysis entry yet." },
+    name: "GLM-5.4",
+    primary: { s: "B", t: "Official blog (the GLM-5 report covers the base only; no model card)" },
+    org: "Z.ai (Zhipu)",
+    released: "2026-11-23 (GLM Coding Plan, where weekly plans get 1.5× GLM-5.3's quota; ZCode and Z.ai Chat). The API follows once a security assessment is complete; open weights after safety hardening",
+    license: "Weights not yet released: Z.ai plans to open-source them \"after completing necessary safety hardening\". Served on the GLM Coding Plan, ZCode and Z.ai Chat; API after a security assessment",
+    params: { total: "750B", active: "40B" },
+    contextShort: "1M",
+    modalitiesShort: "Text, image, video, file → text",
+    tagline:
+      "Z.ai's first looped flagship. Instead of pretraining a looped model from scratch, Z.ai took the GLM-5 base (744B / 40B, MLA with DeepSeek Sparse Attention) and continued training it so that 28 middle layers (27–54) run twice per token, giving 106 layer visits from 78 stored layers. Three changes make the loop work at 750B scale: a per-token damp gate after each pass, a second pass that attends over the first pass's sparse KV plus its own 128-token window, and a second pass that reuses the first pass's indexer picks. Weights, config and standard benchmarks are not out yet; the layer facts come from the blog's figure and GLM-5.3's config.",
+    disclosure: { arch: "partial", pretrain: "partial", sft: "none", rl: "none" },
+    docs: [
+      { kind: "R", label: "GLM-5 technical report (arXiv 2602.15763; the base architecture)", url: "https://arxiv.org/abs/2602.15763" },
+      { kind: "B", label: "GLM-5.4 launch blog (2026-11-23): loop architecture, figures, ablation", url: "https://z.ai/blog/glm-5.4" },
+      { kind: "B", label: "Z.ai developer docs: GLM-5.4 overview (modalities, limits, win rates)", url: "https://docs.z.ai/guides/llm/glm-5.4" },
+      { kind: "B", label: "GLM-5.3 blog (memory vs reasoning compute; the same base family)", url: "https://z.ai/blog/glm-5.3" },
+      { kind: "B", label: "GLM-5.2 blog (1M-context base, IndexShare)", url: "https://z.ai/blog/glm-5.2" },
+      { kind: "C", label: "GLM-5.3 config.json (base layer layout; no GLM-5.4 config yet)", url: "https://huggingface.co/zai-org/GLM-5.3/blob/main/config.json" },
+      { kind: "C", label: "transformers glm_moe_dsa (base layer code; no GLM-5.4 code yet)", url: "https://github.com/huggingface/transformers/tree/main/src/transformers/models/glm_moe_dsa" },
+      { kind: "X", label: "TestingCatalog: Z.ai launches GLM-5.4, its first Loop Transformer model", url: "https://www.testingcatalog.com/z-ai-launches-glm-5-4-its-first-loop-transformer-model/" },
+      { kind: "X", label: "The Next Web: GLM-5.4 runs its layers twice", url: "https://thenextweb.com/news/zai-glm-5-4-loop-transformer-coding-model" },
+    ],
+    layers: Array.from({ length: 78 }, (_, i) => ({ mixer: "sparse", ffn: i < 3 ? "dense" : "moe" })),
+    layersNote: "78 stored layers, all MLA with DSA sparse attention, as in the GLM-5 base. The blog's figure numbers them L1–78: a prelude L1–26, a loop L27–54 that runs twice with shared weights, and a coda L55–78, so a token makes 106 layer visits (26 + 2 × 28 + 24). The dense/MoE split (first 3 dense) and the indexer schedule (L1–2 and every 4th layer from L3, 21 in all) come from GLM-5.3's config.json (mlp_layer_types, indexer_types) and match the figure.",
+    kv: { globalLayers: 78, swaLayers: 0, window: 0, kvHeads: 1, headDim: 576, stateBytes: 0, stateLabel: "", perTokenBytes: 78 * 576 * 2 + 21 * 128 * 2, fixedBytes: 28 * 128 * 576 * 2, perTokLabel: "MLA latent + indexer K per token, BF16", fixedLabel: "pass-2 window (28 layers × 128 tokens)", note: "Pass 1 caches what GLM-5.3 caches: a 576-value MLA latent on all 78 layers plus a 128-dim indexer key on the 21 indexer layers. Pass 2 adds no per-token cache: it reads pass 1's latents at the top-2,048 positions and keeps only its own 128-token sliding window on the 28 looped layers. The fixed part assumes that window is stored in the same 576-value latent format (D); the blog does not give its layout. BF16 shown; GLM-5.3 is served with an FP8 cache." },
+    specs: {
+      params: { v: "≈750B stored (the blog's '750B scale'): the 744B / 40B GLM-5 base plus the damp gates and a 24-layer ViT. Active per pass is the base's 40B; the second pass through layers 27–54 adds ≈ 14.2B, so ≈ 54B effective active per token (28 layers × ≈ 506M: MLA 165M + 9 experts 340M + router 1.6M, from GLM-5.3's config)", s: "B+C+D" },
+      sparsity: { v: "5.4% per pass (40B / 744B); ≈ 7.2% counting the second pass (54B / 750B)", s: "D" },
+      layers: { v: "78 stored (3 dense FFN, 75 MoE); layers 27–54 run twice, so 106 layer visits per token. The blog does not say whether the GLM-5 MTP layer is kept", s: "B+C" },
+      hidden: { v: "6144 (GLM-5 base)", s: "C" },
+      vocab: { v: "154,880 (GLM-5 base)", s: "C" },
+      context: { v: "1M, maximum output 128K (developer docs). The blog sizes the KV design against GLM-5.3 at 1M context", s: "B" },
+      mixer: { v: "MLA with DeepSeek Sparse Attention, top-2,048 (base). In pass 2 each looped layer runs 'two-bank sparse MLA': one softmax over pass 1's KV latents at the selected top-k positions plus pass 2's own KV in a 128-token sliding window. The two banks can cover the same positions", s: "B" },
+      heads: { v: "64 heads; query LoRA 2048, KV latent 512; QK 192 + 64 RoPE, V 256 (GLM-5 base). The query in pass 2 comes from pass 2's hidden state", s: "B+C" },
+      pattern: { v: "Prelude L1–26, loop L27–54 × 2, coda L55–78. Each group runs one layer with its own indexer and three that reuse its top-k (L1–2 each have their own). Pass 2 runs no indexer at all and reuses pass 1's indices", s: "B+C" },
+      position: { v: "Interleaved RoPE on 64 dims, θ = 8M (GLM-5 base; not restated for GLM-5.4)", s: "C" },
+      attnExtras: { v: "Sparse index reuse: pass 2 takes the top-k indices pass 1's indexers picked, adding no indexing cost. Z.ai found this 'nearly identical' to recomputing them each pass. Pass-2 sliding window 128 tokens", s: "B" },
+      ssm: { v: "—", s: "" },
+      moe: { v: "256 routed / top-8 (GLM-5 base)", s: "R+C" },
+      shared: { v: "1", s: "C" },
+      expertDim: { v: "2048 SwiGLU", s: "C" },
+      latent: { v: "No", s: "C" },
+      routing: { v: "GLM-5 base router: sigmoid scores in FP32 plus a correction bias, top-8 renormalized, × 2.5", s: "C" },
+      dense: { v: "3 (SwiGLU 12,288)", s: "C" },
+      act: { v: "SwiGLU", s: "C" },
+      norm: { v: "Pre-norm RMSNorm (base). New damp gate after each loop pass: x₁ = x₀ + β₁(h₁ − x₀) and x₂ = x₁ + β₂(h₂ − x₁), with β = σ(Linear(RMSNorm(input to the pass))): separate gates for each pass, computed per token (the blog does not say whether β is one scalar or a vector per token). Writing the pass output straight back made activation norms blow up across passes. After training, pass 1 writes conservatively (small β) and pass 2 opens the gate; on harder tokens pass 1 writes more", s: "B" },
+      head: { v: "Final RMSNorm → LM head (figure); untied in the GLM-5 base", s: "B+C" },
+      mtp: { v: "Not stated for GLM-5.4. The GLM-5 base has one shared-weight MTP layer", s: "C" },
+      kv: { v: "93 KiB per token in BF16, the same as GLM-5.3, plus a fixed ≈ 3.9 MiB for pass 2's 128-token window on 28 layers (assuming 576-value latents). Z.ai: an extra loop costs one sliding window of KV, not a full context cache", s: "B+D" },
+      state: { v: "None besides the pass-2 window", s: "D" },
+      precision: { v: "Not published", s: "" },
+      modalities: { v: "Video, image, text and file in; text out (developer docs). The blog's figure shows projected ViT features added to the input embedding", s: "B" },
+      encoders: { v: "24-layer ViT whose features are projected into the input embedding (blog figure). No other details", s: "B" },
+    },
+    paramBreakdown: null,
+    highlights: [
+      { t: "<b>Looped by continued training, not from scratch.</b> Z.ai notes that looped models trained from scratch still trail unshared models at the same pretraining compute, so it converted the pretrained GLM-5 base instead. Layers 27–54 now run twice, giving 106 layer visits from 78 stored layers.", s: "B" },
+      { t: "<b>Damp gates between passes.</b> Each pass writes back x + β(h − x) with a per-token β from a sigmoid over the normalized input. Pass 1 learns small gates and pass 2 large ones, and harder tokens get bigger pass-1 writes.", s: "B" },
+      { t: "<b>An extra pass costs one 128-token window of KV.</b> Pass 2 attends over pass 1's sparse KV and adds only a 128-token sliding window of its own, all in one softmax. A naive loop would keep a full cache per pass.", s: "B" },
+      { t: "<b>No indexer in pass 2.</b> The second pass reuses the top-2,048 positions pass 1's indexers chose, which tested nearly the same as recomputing them.", s: "B" },
+      { t: "<b>Validated up a ladder.</b> The loop was tested at 1B, 4B, 30B and 750B. At 30B with equal parameters and about 10% more training compute, looping added 11.3 points on AIME25 and 8.7 on GPQA-Diamond while answers got 2–15% shorter.", s: "B" },
+      { t: "<b>Preferred over GLM-5.3 in head-to-heads.</b> Z.ai's docs chart GLM-5.4 winning 51.1% and losing 23.1% against GLM-5.3, and roughly even against Kimi K3.1 Pro (41.8% vs 31.3%) and DeepSeek-V4.1-Flash-1017 (36.6% vs 33.2%). The task set and judge are not stated.", s: "B" },
+      { t: "<b>Known limitation.</b> Z.ai says the model tends to fall into overlong \"marathon thinking\" loops, though the extra reflection still raises accuracy.", s: "B" },
+    ],
+    refs: {
+      arch: [
+        { label: "GLM-5.4 blog: The Loop Architecture", url: "https://z.ai/blog/glm-5.4", s: "B" },
+        { label: "GLM-5 report §2.1 (base)", url: "https://arxiv.org/abs/2602.15763", s: "R" },
+        { label: "GLM-5.3 config.json (base layout)", url: "https://huggingface.co/zai-org/GLM-5.3/blob/main/config.json", s: "C" },
+        { label: "transformers glm_moe_dsa (base)", url: "https://github.com/huggingface/transformers/tree/main/src/transformers/models/glm_moe_dsa", s: "C" },
+      ],
+      pretrain: [
+        { label: "GLM-5.4 blog: From Pre-Trained Base to Loop Transformer", url: "https://z.ai/blog/glm-5.4", s: "B" },
+        { label: "GLM-5 report §2.2–2.3 (base)", url: "https://arxiv.org/abs/2602.15763", s: "R" },
+      ],
+      sft: [{ label: "GLM-5.4 blog", url: "https://z.ai/blog/glm-5.4", s: "B" }],
+      rl: [{ label: "GLM-5.4 blog", url: "https://z.ai/blog/glm-5.4", s: "B" }],
+      tricks: [
+        { label: "GLM-5.4 blog: Architectural Modifications at 750B Scale", url: "https://z.ai/blog/glm-5.4", s: "B" },
+        { label: "GLM-5.4 blog: Inference Efficiency", url: "https://z.ai/blog/glm-5.4", s: "B" },
+      ],
+      ablations: [
+        { label: "GLM-5.4 blog: Scaling Correctness & Controlled Iso-Parameter Ablations", url: "https://z.ai/blog/glm-5.4", s: "B" },
+      ],
+      bench: [
+        { label: "GLM-5.4 developer docs: win-rate chart", url: "https://docs.z.ai/guides/llm/glm-5.4", s: "B" },
+        { label: "GLM-5.4 blog (no scores published)", url: "https://z.ai/blog/glm-5.4", s: "B" },
+      ],
+    },
+    tricks: [
+      { cat: "Architecture", name: "Loop a pretrained model's middle", t: "28 middle layers (L27–54 of 78) of the GLM-5 base become a weight-shared block run twice. Converting a trained base raises the ceiling for a small compute overhead, where looping from scratch would trail an unshared model at equal pretraining compute.", s: "B" },
+      { cat: "Optimization & stability", name: "Damp gates", t: "Overwriting the hidden state with each pass's output blew up activation norms, so later layers saw inputs outside their trained scale. A per-token, per-pass gate β = σ(Linear(RMSNorm(x))) writes x + β(h − x) instead. Pass 1 learns to write small updates and pass 2 full ones.", s: "B" },
+      { cat: "Long context", name: "Hybrid KV cache", t: "Pass 2 shares pass 1's KV at the sparse top-k positions and keeps its own KV only for a 128-token sliding window, attended in one softmax with the shared bank. Memory for the extra pass is one window instead of a full 1M-token cache.", s: "B" },
+      { cat: "Long context", name: "Index reuse across passes", t: "Pass 2 runs no lightning indexer; it uses pass 1's top-2,048 picks. This stacks on IndexShare, where one indexer already serves four layers, so 21 indexer runs serve 106 layer visits.", s: "B+C" },
+      { cat: "Inference", name: "Fused kernels for the loop", t: "Core kernels were fused to cut intermediate memory traffic that looping amplifies. Z.ai reports up to 200 tokens/s off-peak and 70–80 tokens/s at peak load.", s: "B" },
+      { cat: "Research", name: "Scaling correctness", t: "The loop was validated on 1B, 4B, 30B and 750B bases before committing the flagship. Z.ai next plans adaptive compute, giving harder tokens more passes.", s: "B" },
+    ],
+    ablations: [
+      {
+        title: "Looping at 30B, equal parameters",
+        s: "B",
+        setup: "A 30B model with the same architecture as the 750B base, trained with and without the loop at identical parameter counts; the looped run used about 10% more total training compute. Both were evaluated after 200K long-context SFT with thinking on. Scores and gains are the blog's table. Output length is the change in average output tokens, looped against baseline.",
+        heads: ["Benchmark"],
+        heat: "none",
+        cols: ["Baseline", "+ Loop", "Gain", "Output length"],
+        unit: ["", "", " pts", "%"],
+        digits: [2, 2, 1, 1],
+        rows: [
+          { k: "AIME25", v: [19.17, 30.42, 11.3, -2.0], note: "−635 tokens" },
+          { k: "GPQA-Diamond", v: [47.58, 56.26, 8.7, -11.7], note: "−2,473 tokens" },
+          { k: "AA-LCR", v: [40.33, 47.67, 7.3, -9.7], note: "−539 tokens" },
+          { k: "MMLU-Pro", v: [71.65, 75.05, 3.4, -14.9], note: "−863 tokens" },
+          { k: "IFBench", v: [50.20, 53.47, 3.3, -13.0], note: "−763 tokens" },
+        ],
+        notes: [
+          { t: "The largest gains are in math, science and long context. Output length falls 10–14% on most benchmarks, mostly from shorter chains of thought; Z.ai reads this as reasoning moving from output tokens into loop depth.", s: "B" },
+        ],
+      },
+      {
+        title: "Loop design choices (no numbers published)",
+        s: "B",
+        setup: "Choices the blog says were compared while converting the 750B base, without giving measurements.",
+        heads: ["Change", "Detail", "Against"],
+        cols: [],
+        rows: [
+          { k: "Continued training", t: "Loop an already pretrained base", vs: "Pretrain the looped model from scratch", v: [], verdict: "kept", note: "From-scratch looped models trail unshared models at equal pretraining compute" },
+          { k: "Damp gates", t: "Per-token gate per pass: x + β(h − x)", vs: "Overwrite the hidden state each pass", v: [], verdict: "kept", note: "Overwriting blew up activation norms across passes" },
+          { k: "Hybrid KV cache", t: "Pass 2 shares pass 1's sparse KV plus a 128-token window of its own", vs: "Full KV cache per pass", v: [], verdict: "kept", note: "The extra pass costs one window instead of a full context cache" },
+          { k: "Index reuse", t: "Pass 2 uses pass 1's top-k indices", vs: "Recompute indices every pass", v: [], verdict: "kept", note: "Performed nearly identically, with no indexing cost" },
+        ],
+      },
+    ],
+    pretrain: {
+      headline: "No new pretraining: Z.ai converted the pretrained GLM-5 base into a looped model by continued training over the past three months. Token counts and data for that stage are not published.",
+      stats: [
+        { k: "Starting point", v: "GLM-5 base, 744B / 40B (GLM-5 report: 28.5T tokens)", s: "R+B" },
+        { k: "Conversion", v: "Continued training with layers 27–54 looped twice", s: "B" },
+        { k: "Compute cost (30B ablation)", v: "About 10% more total training compute than the unlooped run", s: "B" },
+        { k: "Validation ladder", v: "1B, 4B, 30B and 750B bases", s: "B" },
+      ],
+      stages: [],
+      mixes: [],
+      notes: [
+        { t: "The blog says 'the GLM-5 base model' without saying whether it is GLM-5.2's 1M-context base that GLM-5.3 uses.", s: "B" },
+      ],
+    },
+    sft: {
+      headline: "Not described. The 30B ablation used 200K long-context SFT with thinking on.",
+      stats: [],
+      stages: [],
+      mixes: [],
+      notes: [],
+    },
+    rl: {
+      headline: "Not described for GLM-5.4. Z.ai frames the release as the start of 'Generalized Coding': using code to generate video, games, 3D scenes and CAD models.",
+      stats: [],
+      methods: [],
+      notes: [
+        { t: "Known limitation: overlong 'marathon thinking' loops.", s: "B" },
       ],
     },
   },
@@ -6382,7 +6560,7 @@ window.BENCHMARKS = [
       dsv4pro: { v: 90.2, n: "Preview" },
       ultra3: { v: 74.9, n: "no tools; 84.8 with tools" }, super: { v: 88.36, n: "16 repeats, no tools" } } },
   { cat: "Reasoning & knowledge", name: "AA-Omniscience Index", unit: "idx", cmp: false, scores: {
-      inkling2m: { v: -8.6, n: "v1.1; non-hallucination rate 63.4%" },
+      inkling2m: { v: -8.6, n: "v1.1; non-hallucination rate 63.4% (64.6% on the varloop card)" },
       inkling2s: { v: 16.1, n: "v1.1; non-hallucination rate 73.3%" },
       lfm3: { v: 0.5, n: "public subset" },
       lfm25: { v: -24.7 },
@@ -6390,6 +6568,7 @@ window.BENCHMARKS = [
       inkling: { v: 2.1, n: "AA; HF card: 1.0" },
       muse: { v: 25, n: "AA, full set" }, beam: { v: 10.8, n: "public split; launch blog: 13.0" } } },
   { cat: "Reasoning & knowledge", name: "AA-Omniscience accuracy", unit: "%", scores: {
+      inkling2m: { v: 21.3, n: "v1.1 public, from the TML-d24-varloop-research card" },
       ml4: { v: 26.0, n: "v1.1; non-hallucination 71.8" },
       lfm3: { v: 7.07, n: "public subset; non-hallucination 92.9" },
       lfm25: { v: 8.7, n: "non-hallucination 63.5" },
@@ -6485,7 +6664,7 @@ window.BENCHMARKS = [
   { cat: "Agentic coding", name: "LiveCodeBench Pro (2025 Q2)", unit: "%", scores: {
       lfm3: { v: 31.74 }, glimmer: { v: 64.1 } } },
   { cat: "Reasoning & knowledge", name: "ARC-AGI", unit: "%", scores: {
-      inkling2m: { v: 84.5, n: "ARC-AGI-1; ARC-AGI-2 49.3" },
+      inkling2m: { v: 84.5, n: "ARC-AGI-1; ARC-AGI-2 49.3. The varloop card lists 90.5 / 51.3 on the public sets" },
       inkling2s: { v: 96.5, n: "ARC-AGI-1; ARC-AGI-2 81.7 (HF card)" },
       inklingsm: { v: 84.0, n: "ARC-AGI-1 (ARC Prize); ARC-AGI-2 40.1" }, glimmer: { v: 66.9, n: "400 tasks, pass@1 over 4" } } },
   { cat: "Reasoning & knowledge", name: "SimpleQA Verified", unit: "%", scores: {
@@ -6775,6 +6954,48 @@ window.BENCHMARKS = [
   { cat: "Multimodal", name: "MuirBench", unit: "%", scores: {
       inkling2m: { v: 77.5 },
     } },
+  { cat: "Long context & instructions", name: "MRCR v2 (8-needle, 512K–1M)", unit: "%", scores: {
+      inkling2m: { v: 37.7, n: "TML-d24-varloop-research card" },
+    } },
+  { cat: "Long context & instructions", name: "GraphWalks BFS (1M)", unit: "%", scores: {
+      inkling2m: { v: 50.0, n: "TML-d24-varloop-research card" },
+    } },
+  { cat: "Agentic coding", name: "Code Migration v1.1", unit: "%", scores: {
+      inkling2m: { v: 23.2, n: "pi harness (Vals)" },
+    } },
+  { cat: "Tool use & agents", name: "Excel Modeling Benchmark v1.1", unit: "%", scores: {
+      inkling2m: { v: 66.0 },
+    } },
+  { cat: "Tool use & agents", name: "Tax Agent Bench", unit: "%", scores: {
+      inkling2m: { v: 14.1 },
+    } },
+  { cat: "Tool use & agents", name: "AA-AnalystAgent", unit: "%", scores: {
+      inkling2m: { v: 46.3, n: "Artificial Analysis" },
+    } },
+  { cat: "Tool use & agents", name: "Diligence Bench", unit: "%", cmp: false, scores: {
+      inkling2m: { v: 48.6, n: "best harness; 31.7 in the Loop harness (varloop card)" },
+    } },
+  { cat: "Multimodal", name: "GroundingME", unit: "%", scores: {
+      inkling2m: { v: 55.5 },
+    } },
+  { cat: "Multimodal", name: "SAGE v1.1", unit: "%", scores: {
+      inkling2m: { v: 85.9 },
+    } },
+  { cat: "Multimodal", name: "BVB", unit: "%", scores: {
+      inkling2m: { v: 68.4 },
+    } },
+  { cat: "Multimodal", name: "Code2Video-AA", unit: "elo", scores: {
+      inkling2m: { v: 870, n: "Artificial Analysis rating" },
+    } },
+  { cat: "Reasoning & knowledge", name: "MysteryMechanism", unit: "%", scores: {
+      inkling2m: { v: 23.0 },
+    } },
+  { cat: "Reasoning & knowledge", name: "ProofBench v1.1", unit: "%", scores: {
+      inkling2m: { v: 18.0 },
+    } },
+  { cat: "Reasoning & knowledge", name: "Humanity's Sixth Sense", unit: "%", scores: {
+      inkling2m: { v: 23.8, n: "TML-d24-varloop-research card" },
+    } },
 ];
 
 /* Nemotron base-model results (Table 6 of the report). */
@@ -6791,6 +7012,7 @@ window.BASE_BENCHMARKS = {
 
 /* Safety suites differ per lab, so they are listed, not tabulated. */
 window.SAFETY = [
+  { id: "glm54", t: "No safety evaluation published. Z.ai's docs say the API will open once a security assessment is complete, and the blog says the weights will be released after \"necessary safety hardening\".", s: "B" },
   { id: "inkling2m", t: "FORTRESS adversarial 89.5% and benign 96.4% (higher is better), StrongREJECT 97.8%. Internal misbehavior 9.8%, covert misbehavior 8.3% and destructive actions 10.2% (lower is better), HoneyBench v0.2 56.7%. Alignment training ends with on-policy distillation, as for Inkling 2 Small. Because looping allows more unverbalized computation, Thinking Machines tested monitorability: CoT controllability stayed at or below 0.1%, and the model could not complete covert side tasks in realistic agentic environments. It concluded the model gives no material uplift beyond existing open weights.", s: "B" },
   { id: "qwen4max", t: "Last Secure Code Bench: the share of functions that pass both functionality and security tests rose from 22.0% to 31.8%, and fully secure generation at all three granularities from 8% to 14.7%. Offensive cyber data was filtered out of training while defensive tasks were kept. Qwen's internal experts found no large-scale cyber risk and no significant CBRN uplift.", s: "B" },
   { id: "inkling2s", t: "FORTRESS adversarial 83.8% and benign 79.7% (higher is better; ARS 16.2, over-refusal 20.4), StrongREJECT 97.1%, DistressBench 82.0%. Internal misbehavior rate 14.9% against Inkling's 66.8% (lower is better), HoneyBench reward hacking 44 (v0.2-alpha; the HF card gives 52.6% on v0.2), Apollo covert action 8 without a goal and 0 with one. A helpful-only variant gave marginal CBRN uplift without advancing the open-weight frontier. After external testing, the HF card concludes the model adds no material uplift beyond the open-weight ecosystem, and the weights shipped on 12 November.", s: "B+C" },
